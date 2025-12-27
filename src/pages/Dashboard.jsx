@@ -4,8 +4,9 @@ import Transactions from './Transactions'
 const Dashboard = () => {
   return (
     <> 
-        
-       <div className='container w-100 h-25 '> 
+        <h3 className='ms-3 mb-3'>Dashboard</h3>
+        <div className='mb-5'> 
+            <div className='container w-100 h-25 '> 
          <div className='row justify-content-evenly'>
           <div className="amount-card col-3  mt-5 d-flex flex-column justify-content-center align-items-center" style={{height:'10rem',borderRadius:'10px'}}>
            
@@ -28,7 +29,9 @@ const Dashboard = () => {
           
          </div>
        </div>
-       <Transactions />
+       </div>
+     
+        <Transactions />
     </>
     
   )

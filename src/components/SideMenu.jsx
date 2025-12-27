@@ -1,5 +1,6 @@
 import React from 'react'
 import { useState } from 'react'
+import { NavLink } from 'react-router-dom'
 import ETlogo from "../assets/ETlogo.png"
 const SideMenu = () => {
   const [collapsed, setCollapsed] = useState(false)
@@ -23,36 +24,42 @@ const SideMenu = () => {
         <i className="fa-solid fa-bars"></i>
       </button>
       <div className='menu'>
-        <a href="#" >
+        <NavLink to="/" >
           <i
             className="fa-solid fa-house "
           ></i>
-          {!collapsed && <span>Home</span>}
-        </a>
-        <a href="#" >
+          {!collapsed && <span>Dashboard</span>}
+        </NavLink>
+        <NavLink to="/balance" >
           <i
             className="fa-solid fa-piggy-bank "
           ></i>
           {!collapsed && <span>Balance</span>}
-        </a>
-        <a href="#" >
+        </NavLink>
+        <NavLink to="/expense" >
           <i
             className="fa-solid fa-money-check-dollar "
           ></i>
           {!collapsed && <span>Expense</span>}
-        </a>
-        <a href="#" >
+        </NavLink>
+        <NavLink to="/transactions" >
           <i
             className="fa-solid fa-money-bill-transfer "
           ></i>
           {!collapsed && <span>Transactions</span>}
-        </a>
-        <a href="#" >
+        </NavLink>
+        <NavLink to="/settings" >
           <i
-            className="fa-solid fa-sliders "
+            className="fa-solid fa-gear "
           ></i>
           {!collapsed && <span>Settings</span>}
-        </a>
+        </NavLink>
+        <NavLink to="/support" >
+          <i
+            className="fa-solid fa-call "
+          ></i>
+          {!collapsed && <span>Support</span>}
+        </NavLink>
 
       </div>
 
