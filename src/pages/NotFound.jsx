@@ -7,7 +7,7 @@ const NotFound = () => {
          style={{ minHeight: "100%", backgroundColor: "#121212" }}>
 
       <div
-        className="text-center p-5 rounded-4"
+        className="text-center p-5 rounded-4 "
         style={{
           backgroundColor: "#1e1e1e",
           maxWidth: "500px",

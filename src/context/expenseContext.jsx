@@ -24,7 +24,7 @@ export const ExpenseProvider = ({ children }) => {
   }, [transactions]);
 
   const addTransactions = (trans) => {
-    setTransactions((prev) => [...prev, trans]);
+    setTransactions((prev) => [trans,...prev]);
   };
 
   return (

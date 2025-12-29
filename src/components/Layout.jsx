@@ -3,29 +3,15 @@ import { Outlet } from "react-router-dom";
 
 const Layout = () => {
   return (
-    <div className="d-flex vh-100 overflow-hidden">
+    <div className="d-flex vh-100 ">
 
       {/* Sidebar */}
       <SideMenu />
 
       {/* Right Content Wrapper (SCROLL CONTAINER) */}
-      <div
-        className="flex-grow-1 bg-dark overflow-auto"
-        style={{
-          borderLeft: "3px solid black",
-        }}
-      >
-        {/* Inner Content (Controls Width & Height) */}
-        <div
-          style={{
-            minWidth: "1000px",   // prevents overlap
-            minHeight: "100%",    // ensures vertical growth
-            padding: "1rem",
-          }}
-        >
-          <Outlet />
-        </div>
-      </div>
+     <div className=" overflow-y-auto bg-dark " style={{width:'100%'}}> 
+    <Outlet />
+     </div>
 
     </div>
   );

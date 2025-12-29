@@ -46,7 +46,7 @@ const AddExpense = () => {
   };
 
   return (
-    <div className="container text-light mt-4">
+    <div className="container text-light mt-4 ">
       <h3 className="mb-4">➖ Add Expense</h3>
 
       <div className="card bg-black text-light p-4 rounded-4 col-12 col-md-7 col-lg-5 mx-auto">

@@ -1,10 +1,28 @@
-import React, { useState } from "react";
+import React, { useState,useEffect} from "react";
 import { NavLink } from "react-router-dom";
 import ETlogo from "../assets/ETlogo.png";
 
 const SideMenu = () => {
   const [collapsed, setCollapsed] = useState(false);
+    useEffect(() => {
+    // Function to check window width
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setCollapsed(true); // Collapse on small screens (mobile/tablet)
+      } else {
+        setCollapsed(false); // Expand on larger screens
+      }
+    };
 
+    // Set initial state on mount
+    handleResize();
+
+    // Add event listener
+    window.addEventListener('resize', handleResize);
+
+    // Clean up listener on unmount to prevent memory leaks
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   return (
     <div
       className={`sidebar bg-black text-light d-flex flex-column position-relative ${

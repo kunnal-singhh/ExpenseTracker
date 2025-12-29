@@ -2,12 +2,13 @@ import React, { useState } from "react";
 import useExpense from "../context/expenseContext";
 
 const AddBalance = () => {
-  const { addTransactions } = useExpense();
+  const { transactions,addTransactions } = useExpense();
 
   const [amount, setAmount] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
+    const balance = transactions.reduce((acc, t) => acc + t.amount, 0);
   const add = (e) => {
     e.preventDefault();
     if (!from || !to || !amount) return;
@@ -17,7 +18,7 @@ const AddBalance = () => {
       from,
       to,
       amount: Number(amount),
-      date: new Date().toLocaleDateString(),
+    date: new Date().toLocaleDateString(),
       time: new Date().toLocaleTimeString(),
     });
 
@@ -27,7 +28,7 @@ const AddBalance = () => {
   };
 
   return (
-    <div className="container text-light mt-4">
+    <div className="container text-light mt-4 ">
       <h3 className="mb-4">➕ Add Balance</h3>
 
       <div className="card bg-black text-light p-4 rounded-4 col-12 col-md-7 col-lg-5 mx-auto">
@@ -70,10 +71,13 @@ const AddBalance = () => {
           </div>
 
           {/* Button */}
-          <button type="submit" className="btn btn-primary mt-3">
+          <button type="submit" className="btn btn-primary mt-2">
             Add Balance
           </button>
-
+ {/* Balance Info */}
+          <small className="text-secondary text-center">
+            Available Balance: ₹{balance}
+          </small>
         </form>
       </div>
     </div>
