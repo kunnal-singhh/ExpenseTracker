@@ -3,29 +3,38 @@ import { NavLink } from "react-router-dom";
 import ETlogo from "../assets/ETlogo.png";
 
 const SideMenu = () => {
-  const [collapsed, setCollapsed] = useState(false);
-    useEffect(() => {
-    // Function to check window width
+  const [collapsed, setCollapsed] = useState(true);
+  const [isManual, setIsManual] = useState(true);
+
+  useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 840) {
-        setCollapsed(true); // Collapse on small screens (mobile/tablet)
-      } else {
-        setCollapsed(false); // Expand on larger screens
+      // If the screen is small, always collapse it to save space
+      if (window.innerWidth < 768) {
+        setCollapsed(true);
+      } 
+      // Only auto-expand if the screen is big AND the user hasn't manually collapsed it
+      else if (!isManual) {
+        setCollapsed(false);
       }
     };
 
-    // Set initial state on mount
     handleResize();
-
-    // Add event listener
     window.addEventListener('resize', handleResize);
-
-    // Clean up listener on unmount to prevent memory leaks
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [isManual]); // Re-run effect logic if isManual status changes
+
+  const handleToggle = () => {
+    const newState = !collapsed;
+    setCollapsed(newState);
+    
+    // If the user clicks the button on a large screen, mark it as a manual choice
+    if (window.innerWidth >= 768) {
+      setIsManual(newState);
+    }
+  };
   return (
     <div
-      className={`sidebar bg-black text-light d-flex flex-column position-relative ${
+      className={`sidebar bg-black text-light d-flex flex-column  ${
         collapsed ? "collapsed" : ""
       }`}
     >
@@ -47,7 +56,7 @@ const SideMenu = () => {
       {/* Toggle Button */}
       <button
         className="toggle-btn text-light"
-        onClick={() => setCollapsed(!collapsed)}
+        onClick={handleToggle}
       >
         <i className="fa-solid fa-bars"></i>
       </button>

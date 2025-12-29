@@ -8,12 +8,13 @@
 /* ================= SIDEBAR ================= */
 
 .sidebar {
-  width: 300px;
+  width: 250px;
   height: 100vh;
   background-color: #000;
   color: white;
   transition: width 0.3s ease;
-  position: relative;
+  position: fixed;
+  z-index: 10;
 }
 
 .sidebar.collapsed {
@@ -100,7 +101,7 @@
 }
 
 .sidebar.collapsed .logo-area {
-  bottom: 80px;
+  bottom: 100px;
 }
 
 .logo {

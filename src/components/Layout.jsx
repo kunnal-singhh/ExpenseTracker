@@ -9,7 +9,7 @@ const Layout = () => {
       <SideMenu />
 
       {/* Right Content Wrapper (SCROLL CONTAINER) */}
-     <div className=" overflow-y-auto bg-dark " style={{width:'100%'}}> 
+     <div className=" overflow-y-auto bg-dark " style={{width:'100%',paddingLeft:'5rem'}}> 
     <Outlet />
      </div>
 
