@@ -7,7 +7,7 @@ const SideMenu = () => {
     useEffect(() => {
     // Function to check window width
     const handleResize = () => {
-      if (window.innerWidth < 768) {
+      if (window.innerWidth < 840) {
         setCollapsed(true); // Collapse on small screens (mobile/tablet)
       } else {
         setCollapsed(false); // Expand on larger screens

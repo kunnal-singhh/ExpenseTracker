@@ -5,7 +5,7 @@ const AddExpense = () => {
   const { transactions, addTransactions } = useExpense();
 
   const [amount, setAmount] = useState("");
-  const [from, setFrom] = useState("");
+ 
   const [to, setTo] = useState("");
   const [error, setError] = useState("");
 
@@ -15,7 +15,7 @@ const AddExpense = () => {
   const add = (e) => {
     e.preventDefault();
 
-    if (!from || !to || !amount) return;
+    if ( !to || !amount) return;
 
     // ❌ Balance zero
     if (balance <= 0) {
@@ -32,14 +32,14 @@ const AddExpense = () => {
     // ✅ Valid expense
     addTransactions({
       id: Date.now(),
-      from,
+  
       to,
       amount: -Number(amount),
       date: new Date().toLocaleDateString(),
       time: new Date().toLocaleTimeString(),
     });
 
-    setFrom("");
+   
     setTo("");
     setAmount("");
     setError("");
@@ -59,17 +59,7 @@ const AddExpense = () => {
             </div>
           )}
 
-          {/* From */}
-          <div>
-            <label className="form-label">From</label>
-            <input
-              type="text"
-              className="form-control bg-dark text-light border-secondary"
-              placeholder="Paid from"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-            />
-          </div>
+         
 
           {/* To */}
           <div>
