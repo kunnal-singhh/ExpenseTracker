@@ -4,10 +4,10 @@ const Transactions = () => {
   const { transactions } = useExpense();
 
   return (
-    <div className="container text-light mt-4 ">
+    <div className="w-100 text-light mt-4 p-0 ">
       <h3 className="mb-4">📄 Transactions</h3>
 
-      <div className="card bg-black text-light rounded-3 p-3 pb-1">
+      <div className="card bg-black text-light rounded-3 p-3 pb-1 ">
 
         {/* Table Header */}
         <div className="row fw-semibold border-bottom border-secondary pb-2 mb-2">
@@ -24,24 +24,26 @@ const Transactions = () => {
           transactions.map((t) => (
             <div
               key={t.id}
-              className="row align-items-center p-3 border-bottom border-secondary rounded-3 bg-dark"
+              className="row align-items-center pt-2 pb-2 border-bottom border-secondary rounded-3 bg-dark"
             >
             
-              <div className="col-6 ">{t.to}</div>
+              <div className="col-9 ">{t.to} 
+                  <div className="d-flex justify-content-start align-items-center gap-1"> 
+                    <span style={{fontSize:'10px',color:'#b0b0b0ff'}}>{t.date}</span>
+                  <span style={{fontSize:'10px',color:'#b0b0b0ff'}}>{t.time}</span>
+                </div>
+              </div>
               {/* <div className="col-2 text-center">{t.date}</div>
               <div className="col-2 text-center">{t.time}</div> */}
               <div
-                className={`col-6 text-end fw-bold d-flex flex-column justify-content-center align-items-end gap-2 ${
+                className={`col-3 text-end fw-bold d-flex flex-column justify-content-center align-items-end gap-2 ${
                   t.amount > 0 ? "text-success" : "text-danger"
                 }`}
               >
                 {t.amount > 0
                   ? `+₹${t.amount}`
                   : `-₹${Math.abs(t.amount)}`}
-                <div className="d-flex justify-content-center align-items-end gap-1"> 
-                    <span style={{fontSize:'10px',color:'#b0b0b0ff'}}>{t.date}</span>
-                  <span style={{fontSize:'10px',color:'#b0b0b0ff'}}>{t.time}</span>
-                </div>
+              
               </div>
             </div>
           ))

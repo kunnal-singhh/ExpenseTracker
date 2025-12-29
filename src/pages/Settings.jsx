@@ -10,7 +10,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="container text-light mt-4">
+    <div className=" text-light mt-4 ">
       <h2 className="mb-4">⚙️ Settings</h2>
 
       <div className="card bg-black text-light p-4 rounded-4">

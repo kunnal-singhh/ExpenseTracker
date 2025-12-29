@@ -2,10 +2,10 @@ import React from "react";
 
 const Support = () => {
   return (
-    <div className="container text-light mt-4">
+    <div className=" text-light mt-4 mb-4 ">
       <h3 className="mb-4">🛠 Support</h3>
 
-      <div className="card bg-black text-light rounded-4 p-4 col-12 col-lg-8 mx-auto">
+      <div className="card bg-black text-light rounded-4 p-4 ">
 
         {/* Intro */}
         <h5>Need Help?</h5>

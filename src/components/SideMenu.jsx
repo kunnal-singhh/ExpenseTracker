@@ -33,7 +33,16 @@ const SideMenu = () => {
     }
   };
   return (
-    <div
+    <> 
+    
+      {/* Toggle Button */}
+      <button
+        className=" toggle-btn text-light " style={{zIndex:'11'}}
+        onClick={handleToggle}
+      >
+        <i className="fa-solid fa-bars"></i>
+      </button>
+     <div
       className={`sidebar bg-black text-light d-flex flex-column  ${
         collapsed ? "collapsed" : ""
       }`}
@@ -54,12 +63,12 @@ const SideMenu = () => {
       </div>
 
       {/* Toggle Button */}
-      <button
+      {/* <button
         className="toggle-btn text-light"
         onClick={handleToggle}
       >
         <i className="fa-solid fa-bars"></i>
-      </button>
+      </button> */}
 
       {/* Menu Links */}
       <div className="menu d-flex flex-column mt-4 gap-1">
@@ -105,6 +114,8 @@ const SideMenu = () => {
         />
       </div>
     </div>
+    </>
+   
   );
 };
 

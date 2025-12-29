@@ -17,11 +17,11 @@ const Dashboard = () => {
   const balance = income + expense;
   
   return (
-    <div className="container text-light mt-4 ">
+    <div className=" text-light mt-4 ">
       <h3 className="mb-4">📊 Dashboard</h3>
 
       {/* Summary Cards */}
-      <div className="row g-3 mb-5">
+      <div className="row g-3 mb-5 ">
 
         {/* Income */}
         <div className="col-12 col-md-4">
