@@ -1,24 +1,32 @@
 import SideMenu from "./SideMenu";
-import {Outlet} from 'react-router-dom'
+import { Outlet } from "react-router-dom";
+
 const Layout = () => {
   return (
     <div className="d-flex vh-100 overflow-hidden">
-      
+
+      {/* Sidebar */}
       <SideMenu />
 
-     <div 
-        className="w-100 p-3 bg-dark overflow-y-auto" 
-        style={{ 
-           backgroundColor: 'black', 
-           borderLeft: '3px solid black',
-           // We do NOT need minHeight: '100%' here because flexbox handles it
-           // flex-grow-1 ensures it fills the space
-           flexGrow: 1
+      {/* Right Content Wrapper (SCROLL CONTAINER) */}
+      <div
+        className="flex-grow-1 bg-dark overflow-auto"
+        style={{
+          borderLeft: "3px solid black",
         }}
       >
-        {/* Outlet represents Dashboard, Transactions, etc. depending on URL */}
-        <Outlet />
+        {/* Inner Content (Controls Width & Height) */}
+        <div
+          style={{
+            minWidth: "1000px",   // prevents overlap
+            minHeight: "100%",    // ensures vertical growth
+            padding: "1rem",
+          }}
+        >
+          <Outlet />
+        </div>
       </div>
+
     </div>
   );
 };

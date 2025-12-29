@@ -1,89 +1,148 @@
-*{ 
-    margin:0;
-    padding:0;
-    color:white
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
-.sidebar{ 
-    width:300px;
-    height:100vh;
+
+/* ================= SIDEBAR ================= */
+
+.sidebar {
+  width: 300px;
+  height: 100vh;
+  background-color: #000;
+  color: white;
+  transition: width 0.3s ease;
+  position: relative;
 }
-.sidebar.collapsed{ 
-    width:70px;
+
+.sidebar.collapsed {
+  width: 70px;
 }
+
+/* Toggle Button */
 .toggle-btn {
   position: absolute;
-  top: 10px;
-  right: 15px;
+  top: 15px;
+  left: 20px;
   background: none;
   border: none;
   color: white;
   font-size: 20px;
-}
-.sidebar.collapsed .toggle-btn{ 
-   margin:0 auto;
+  cursor: pointer;
 }
 
-.profile-img{ 
-    width:120px;
-    margin:15px;
-    border-radius: 50%;
-    
+.sidebar.collapsed .toggle-btn {
+  left: 25px;
 }
-.menu{ 
+
+/* Profile */
+.profile-img {
+  width: 90px;
+  margin: 15px auto;
+  border-radius: 50%;
+  display: block;
+}
+
+/* ================= MENU ================= */
+
+.menu {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: start;
-  gap:20px;
+  gap: 18px;
   margin-top: 50px;
-  padding-left: 25px;
+  padding-left: 1.5rem;
 }
-.sidebar.collapsed .menu{ 
-  
+
+.sidebar.collapsed .menu {
+  align-items: center;
+  padding-left: 0;
   margin-top: 70px;
-  gap:30px;
+  gap: 28px;
 }
-.sidebar.collapsed .menu a{ 
-  font-size: large;
-}
-.menu a{ 
-     color: white;
+
+.menu a {
+  color: #ccc;
   text-decoration: none;
   display: flex;
   align-items: center;
   gap: 12px;
   font-size: 15px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background 0.2s ease, color 0.2s ease;
 }
-.logo-area{ 
-    margin-top: 40px;
-      position: absolute;
+
+.menu a:hover {
+  background-color: #1f1f1f;
+  color: white;
+}
+
+.menu a.active {
+  background-color: #1f1f1f;
+  color: #0d6efd;
+}
+
+.sidebar.collapsed .menu a {
+  font-size: 18px;
+  justify-content: center;
+}
+
+/* ================= LOGO ================= */
+
+.logo-area {
+  position: absolute;
   bottom: 40px;
   width: 100%;
   text-align: center;
   display: flex;
-  align-items: center;
   justify-content: center;
-  overflow: visible;
-}
-.sidebar.collapsed .logo-area{ 
-    bottom:80px;
-}
-.logo{ 
-    
-    width:160px;
-   transition: transform 0.3s ease;
-}
-.logo.rotate{ 
-    transform: rotate(-90deg);
-    width:140px;
 }
 
-.amount-card{ 
-  background:linear-gradient(to right,#8a60f4b1,#f69c5ca1);
+.sidebar.collapsed .logo-area {
+  bottom: 80px;
 }
-.toggle-icon{ 
-    transition:transform 1s none;
+
+.logo {
+  width: 140px;
+  transition: transform 0.3s ease;
 }
-.toggle-icon.rotate-icon { 
-  transform:translateX(30px);
+
+.logo.rotate {
+  transform: rotate(-90deg);
+}
+
+/* ================= CARDS ================= */
+
+.amount-card {
+  background-color: #1e1e1e;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.6);
+  color: white;
+  border-radius: 12px;
+}
+
+/* Add Balance / Expense Card */
+.addTrans {
+  background-color: #1e1e1e;
+  border-radius: 16px;
+}
+
+/* ================= TOGGLE ICON ================= */
+
+.toggle-icon {
+  transition: transform 0.3s ease;
+}
+
+.toggle-icon.rotate-icon {
+  transform: translateX(30px);
+}
+
+/* ================= AMOUNT COLORS ================= */
+
+.debit {
+  color: rgb(0, 171, 0); /* Income */
+}
+
+.credit {
+  color: rgb(220, 53, 69); /* Expense */
 }

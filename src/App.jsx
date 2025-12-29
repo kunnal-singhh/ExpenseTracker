@@ -7,10 +7,11 @@ import Transactions from "./pages/Transactions";
 import Settings from './pages/Settings'
 import NotFound from './pages/NotFound';
 import Support from './pages/Support'
+import { ExpenseProvider } from '../src/context/expenseContext';
 
 function App() {
   return ( 
-     <> 
+     <ExpenseProvider> 
         
        <Routes>
       <Route path='/' element={<Layout />}>
@@ -30,7 +31,7 @@ function App() {
     </Routes>
 
       
-     </>  
+     </ExpenseProvider>  
 
   )
 }
