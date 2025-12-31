@@ -35,13 +35,7 @@ const SideMenu = () => {
   return (
     <> 
     
-      {/* Toggle Button */}
-      <button
-        className=" toggle-btn text-light " style={{zIndex:'11'}}
-        onClick={handleToggle}
-      >
-        <i className="fa-solid fa-bars"></i>
-      </button>
+    
      <div
       className={`sidebar bg-black text-light d-flex flex-column  ${
         collapsed ? "collapsed" : ""
@@ -63,15 +57,15 @@ const SideMenu = () => {
       </div>
 
       {/* Toggle Button */}
-      {/* <button
+      <button
         className="toggle-btn text-light"
         onClick={handleToggle}
       >
         <i className="fa-solid fa-bars"></i>
-      </button> */}
+      </button>
 
       {/* Menu Links */}
-      <div className="menu d-flex flex-column mt-4 gap-1">
+      <div className="menu d-flex flex-column ">
 
         <NavLink to="/" className="menu-link">
           <i className="fa-solid fa-house"></i>
@@ -106,7 +100,7 @@ const SideMenu = () => {
       </div>
 
       {/* Logo */}
-      <div className="logo-area mt-auto text-center py-3">
+      <div className="logo-area  text-center py-3">
         <img
           src={ETlogo}
           alt="ET Logo"

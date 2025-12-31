@@ -7,10 +7,11 @@ const NotFound = () => {
          style={{ minHeight: "100%", backgroundColor: "#121212" }}>
 
       <div
-        className="text-center p-5 rounded-4 "
+        className="text-center p-md-5 p-3 rounded-4 mt-5 "
         style={{
           backgroundColor: "#1e1e1e",
           maxWidth: "500px",
+          
           width: "100%",
           boxShadow: "0 0 15px rgba(0,0,0,0.6)"
         }}

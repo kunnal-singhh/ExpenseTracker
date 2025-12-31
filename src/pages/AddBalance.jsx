@@ -6,11 +6,15 @@ const AddBalance = () => {
 
   const [amount, setAmount] = useState("");
   const [to, setTo] = useState("");
+  const [success,setSuccess]=useState(false)
 
     const balance = transactions.reduce((acc, t) => acc + t.amount, 0);
   const add = (e) => {
     e.preventDefault();
-    if ( !to || !amount) return;
+      if (!to || !amount || amount <= 0) {
+    alert("Amount must be greater than 0");
+    return;
+      }
 
     addTransactions({
       id: Date.now(),
@@ -20,22 +24,34 @@ const AddBalance = () => {
       time: new Date().toLocaleTimeString(),
     });
 
-   
+   setSuccess(true);
+
+setTimeout(() => {
+  setSuccess(false);
+}, 2000);
     setTo("");
     setAmount("");
+    
   };
 
   return (
     <div className=" text-light mt-4  ">
-      <h3 className="mb-4">➕ Add Balance</h3>
-
+      <h3 className="mb-4 ">➕ Add Balance <div className={`success-msg ${success ? "show" : ""}`}>
+  {success && (
+    <h4 className="text-success text-center mt-2">
+      Success
+    </h4>
+  )}
+</div>
+</h3>
+      
       <div className="card bg-black text-light p-4 rounded-4 ">
         <form onSubmit={add} className="d-flex flex-column gap-3">
 
 
           {/* To */}
           <div>
-            <label className="form-label">To</label>
+            <label className="form-label">From</label>
             <input
               type="text"
               className="form-control bg-dark text-light border-secondary"

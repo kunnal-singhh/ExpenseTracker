@@ -24,7 +24,7 @@
 /* Toggle Button */
 .toggle-btn {
   position: absolute;
-  top: 15px;
+  top: 20px;
   left: 20px;
   background: none;
   border: none;
@@ -40,7 +40,7 @@
 /* Profile */
 .profile-img {
   width: 90px;
-  margin: 15px auto;
+  margin: 20px auto;
   border-radius: 50%;
   display: block;
 }
@@ -50,16 +50,16 @@
 .menu {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  margin-top: 50px;
-  padding-left: 1.5rem;
+  gap: .2rem;
+  margin-top: 1.5rem;
+  padding: 0 1.5rem;
 }
 
 .sidebar.collapsed .menu {
   align-items: center;
-  padding-left: 0;
-  margin-top: 70px;
-  gap: 28px;
+  padding: 0;
+  margin-top: 3rem;
+  gap: .7rem;
 }
 
 .menu a {
@@ -92,8 +92,7 @@
 /* ================= LOGO ================= */
 
 .logo-area {
-  position: absolute;
-  bottom: 80px;
+ margin-top: 5rem;
   width: 100%;
   text-align: center;
   display: flex;
@@ -101,7 +100,7 @@
 }
 
 .sidebar.collapsed .logo-area {
-  bottom: 120px;
+  margin-top: 10rem;
 }
 
 .logo {
@@ -178,3 +177,14 @@
     margin-left: 0 !important;
   }
 } */
+
+.success-msg {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.success-msg.show {
+  opacity: 1;
+  transform: translateY(0);
+}
