@@ -14,7 +14,7 @@ const Layout = () => {
         style={{ flex: 1, marginLeft: '3.4rem',paddingRight:'.7rem' }}
       > 
         {/* Centering Wrapper: col-11 for mobile, col-lg-9 for 75% width */}
-        <div className="col-11 col-lg-6 mx-auto">
+        <div className="col-11 col-lg-8 mx-auto">
            <Outlet />
         </div>
       </div>
