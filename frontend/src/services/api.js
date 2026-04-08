@@ -19,7 +19,11 @@ async function request(endpoint, options = {}) {
   });
 
   const data = await res.json();
-  if (!res.ok) throw new Error(data.message || "Request failed");
+  // if (!res.ok) throw new Error(data.message || "Request failed");
+  if (!res.ok) {
+  console.error(data); // debug
+  throw new Error(data.message || "Request failed");
+}
   return data;
 }
 

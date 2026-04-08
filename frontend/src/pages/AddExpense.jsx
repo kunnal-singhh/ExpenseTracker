@@ -30,11 +30,11 @@ const AddExpense = () => {
     }
 
     addTransactions({
-      id: Date.now(),
+      // id: Date.now(),
       to,
       amount: -Number(amount),
-      date: new Date().toLocaleDateString(),
-      time: new Date().toLocaleTimeString(),
+      // date: new Date().toLocaleDateString(),
+      // time: new Date().toLocaleTimeString(),
     });
 
     setSuccess(true);

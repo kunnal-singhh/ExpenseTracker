@@ -10,31 +10,25 @@ const AddBalance = () => {
 
   const balance = transactions.reduce((acc, t) => acc + t.amount, 0);
 
-  const add = (e) => {
-    e.preventDefault();
 
-    if (!to || !amount || amount <= 0) {
-      alert("Amount must be greater than 0");
-      return;
-    }
 
-    addTransactions({
-      id: Date.now(),
-      to,
-      amount: Number(amount),
-      date: new Date().toLocaleDateString(),
-      time: new Date().toLocaleTimeString(),
-    });
-
+// ✅ FIX
+const add = async (e) => {
+  e.preventDefault();
+  if (!to || !amount || Number(amount) <= 0) {
+    alert("Amount must be greater than 0");
+    return;
+  }
+  try {
+    await addTransactions({ to, amount: Number(amount) }); // ← await
     setSuccess(true);
-
-    setTimeout(() => {
-      setSuccess(false);
-    }, 2000);
-
+    setTimeout(() => setSuccess(false), 2000);
     setTo("");
     setAmount("");
-  };
+  } catch (err) {
+    alert("Failed: " + err.message);
+  }
+};
 
   return (
     <div className="container mt-4 text-light">

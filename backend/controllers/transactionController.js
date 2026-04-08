@@ -1,7 +1,7 @@
+const mongoose = require("mongoose");
 const Transaction = require("../models/Transaction.model");
 
 // ─── @GET /api/transactions ────────────────────────────
-// Query params: type=income|expense, limit, page
 const getTransactions = async (req, res) => {
   try {
     const { type, page = 1, limit = 50 } = req.query;
@@ -13,10 +13,7 @@ const getTransactions = async (req, res) => {
     const skip = (Number(page) - 1) * Number(limit);
 
     const [transactions, total] = await Promise.all([
-      Transaction.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(Number(limit)),
+      Transaction.find(filter).sort({ createdAt: -1 }).skip(skip).limit(Number(limit)),
       Transaction.countDocuments(filter),
     ]);
 
@@ -41,10 +38,9 @@ const createTransaction = async (req, res) => {
       return res.status(400).json({ success: false, message: "to and a non-zero amount are required" });
     }
 
-    // If it's an expense, validate sufficient balance
     if (Number(amount) < 0) {
       const result = await Transaction.aggregate([
-        { $match: { user: req.user._id } },
+        { $match: { user: new mongoose.Types.ObjectId(req.user._id) } },
         { $group: { _id: null, balance: { $sum: "$amount" } } },
       ]);
       const balance = result[0]?.balance || 0;
@@ -62,12 +58,14 @@ const createTransaction = async (req, res) => {
       user: req.user._id,
       to,
       amount: Number(amount),
+       type: Number(amount) > 0 ? "income" : "expense",
       date: now.toLocaleDateString(),
       time: now.toLocaleTimeString(),
     });
 
     res.status(201).json({ success: true, transaction });
   } catch (err) {
+    console.error("createTransaction error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -77,7 +75,7 @@ const deleteTransaction = async (req, res) => {
   try {
     const transaction = await Transaction.findOneAndDelete({
       _id: req.params.id,
-      user: req.user._id, // ensure ownership
+      user: req.user._id,
     });
 
     if (!transaction) {
@@ -91,20 +89,15 @@ const deleteTransaction = async (req, res) => {
 };
 
 // ─── @GET /api/transactions/summary ───────────────────
-// Returns: totalIncome, totalExpense, balance
 const getSummary = async (req, res) => {
   try {
     const result = await Transaction.aggregate([
-      { $match: { user: req.user._id } },
+      { $match: { user: new mongoose.Types.ObjectId(req.user._id) } },
       {
         $group: {
           _id: null,
-          totalIncome: {
-            $sum: { $cond: [{ $gt: ["$amount", 0] }, "$amount", 0] },
-          },
-          totalExpense: {
-            $sum: { $cond: [{ $lt: ["$amount", 0] }, "$amount", 0] },
-          },
+          totalIncome: { $sum: { $cond: [{ $gt: ["$amount", 0] }, "$amount", 0] } },
+          totalExpense: { $sum: { $cond: [{ $lt: ["$amount", 0] }, "$amount", 0] } },
           balance: { $sum: "$amount" },
           count: { $sum: 1 },
         },

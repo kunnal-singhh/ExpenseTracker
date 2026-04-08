@@ -13,36 +13,23 @@ const transactionSchema = new mongoose.Schema(
       required: [true, "Transaction label is required"],
       trim: true,
     },
-    // Positive = income, Negative = expense  (matches your frontend logic)
     amount: {
       type: Number,
       required: [true, "Amount is required"],
       validate: {
-        validator: (v) => v !== 0,
+        validator: function(v) { return v !== 0; },
         message: "Amount cannot be zero",
       },
     },
     type: {
       type: String,
       enum: ["income", "expense"],
-      required: true,
+      default: "expense",
     },
-    date: {
-      type: String, // kept as string to match your existing frontend format
-      required: true,
-    },
-    time: {
-      type: String,
-      required: true,
-    },
+    date: { type: String, required: true },
+    time: { type: String, required: true },
   },
   { timestamps: true }
 );
-
-// Auto-set type based on amount before saving
-transactionSchema.pre("save", function (next) {
-  this.type = this.amount > 0 ? "income" : "expense";
-  next();
-});
 
 module.exports = mongoose.model("Transaction", transactionSchema);

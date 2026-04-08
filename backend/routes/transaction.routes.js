@@ -5,8 +5,8 @@ const {
   createTransaction,
   deleteTransaction,
   getSummary,
-} = require("../controllers/transaction.controller");
-const { protect } = require("../middleware/auth.middleware");
+} = require("../controllers/transactionController");
+const { protect } = require("../middleware/authMiddleware");
 
 // All routes below require authentication
 router.use(protect);
