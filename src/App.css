@@ -1,0 +1,190 @@
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ================= SIDEBAR ================= */
+
+.sidebar {
+  width: 250px;
+  height: 100vh;
+  background-color: #000;
+  color: white;
+  transition: width 0.3s ease;
+  position: fixed;
+  z-index: 10;
+}
+
+.sidebar.collapsed {
+  width: 63px;
+}
+
+/* Toggle Button */
+.toggle-btn {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.sidebar.collapsed .toggle-btn {
+  left: 22px;
+}
+
+/* Profile */
+.profile-img {
+  width: 90px;
+  margin: 20px auto;
+  border-radius: 50%;
+  display: block;
+}
+
+/* ================= MENU ================= */
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+  margin-top: 1.5rem;
+  padding: 0 1.5rem;
+}
+
+.sidebar.collapsed .menu {
+  align-items: center;
+  padding: 0;
+  margin-top: 3rem;
+  gap: .7rem;
+}
+
+.menu a {
+  color: #ccc;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.menu a:hover {
+  background-color: #1f1f1f;
+  color: white;
+}
+
+.menu a.active {
+  background-color: #1f1f1f;
+  color: #0d6efd;
+}
+
+.sidebar.collapsed .menu a {
+  font-size: 18px;
+  justify-content: center;
+}
+
+/* ================= LOGO ================= */
+
+.logo-area {
+ margin-top: 5rem;
+  width: 100%;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+}
+
+.sidebar.collapsed .logo-area {
+  margin-top: 10rem;
+}
+
+.logo {
+  width: 140px;
+  transition: transform 0.3s ease;
+}
+
+.logo.rotate {
+  transform: rotate(-90deg);
+}
+
+/* ================= CARDS ================= */
+
+.amount-card {
+  background-color: #1e1e1e;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.6);
+  color: white;
+  border-radius: 12px;
+}
+
+/* Add Balance / Expense Card */
+.addTrans {
+  background-color: #1e1e1e;
+  border-radius: 16px;
+}
+
+/* ================= TOGGLE ICON ================= */
+
+.toggle-icon {
+  transition: transform 0.3s ease;
+}
+
+.toggle-icon.rotate-icon {
+  transform: translateX(30px);
+}
+
+/* ================= AMOUNT COLORS ================= */
+
+.debit {
+  color: rgb(0, 171, 0); /* Income */
+}
+
+.credit {
+  color: rgb(220, 53, 69); /* Expense */
+}
+
+/* Sidebar hidden on mobile by default */
+/* @media screen and (max-width: 576px) {
+  .sidebar { 
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    position: absolute;
+    z-index: 10;
+    height: 100vh;
+  } */
+
+  /* Show sidebar when not collapsed */
+  /* .sidebar.collapsed {
+    display: none !important; 
+  }
+
+  .sidebar:not(.collapsed) {
+    transform: translateX(0);
+    display: flex !important;
+  }
+  .toggle-btn{ 
+  
+    display: inline-block;
+
+    
+  } */
+  /* Remove the sidebar gap from the main content */
+  /* .content-wrapper {
+    margin-left: 0 !important;
+  }
+} */
+
+.success-msg {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.success-msg.show {
+  opacity: 1;
+  transform: translateY(0);
+}
