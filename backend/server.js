@@ -12,8 +12,23 @@ const userRoutes = require("./routes/user.routes");
 const app = express();
 
 // ─── Middleware ───────────────────────────────────────
-// app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
-app.use(cors());
+const allowedOrigins = (process.env.CLIENT_URL || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  })
+);
 app.use(express.json({ limit: "15mb" }));
 
 
