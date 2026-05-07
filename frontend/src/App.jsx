@@ -2,6 +2,7 @@
 // Replace your existing App.jsx with this
 
 import { Routes, Route, Navigate } from "react-router-dom";
+import { useEffect } from "react";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import AddBalance from "./pages/AddBalance";
@@ -22,8 +23,11 @@ function PrivateRoute({ children }) {
 
   if (loading) {
     return (
-      <div className="d-flex justify-content-center align-items-center bg-dark vh-100">
-        <div className="spinner-border text-primary" role="status" />
+      <div className="app-main d-flex justify-content-center align-items-center vh-100">
+        <div className="theme-card p-4 d-flex align-items-center gap-3">
+          <div className="spinner-border text-primary" role="status" />
+          <span className="text-secondary">Loading your workspace...</span>
+        </div>
       </div>
     );
   }
@@ -32,6 +36,12 @@ function PrivateRoute({ children }) {
 }
 
 function AppRoutes() {
+  useEffect(() => {
+    const theme = localStorage.getItem("theme") || "dark";
+    document.documentElement.setAttribute("data-theme", theme);
+    document.body.setAttribute("data-bs-theme", theme);
+  }, []);
+
   return (
     <>
       <Routes>

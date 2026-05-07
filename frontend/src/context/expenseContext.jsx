@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { transactionAPI, authAPI } from "../services/api";
+import { transactionAPI, authAPI, userAPI } from "../services/api";
 
 export const ExpenseContext = createContext();
 
@@ -79,10 +79,39 @@ export const ExpenseProvider = ({ children }) => {
     setTransactions([]);
   };
 
+  const updateProfile = async (profileData) => {
+    const data = await userAPI.updateProfile(profileData);
+    if (data.success) {
+      setUser((prev) => ({
+        ...prev,
+        ...profileData,
+        ...data.user,
+      }));
+    }
+    return data;
+  };
+
+  const changeEmail = async (email) => {
+    const data = await userAPI.changeEmail({ email });
+    if (data.success) {
+      setUser((prev) => ({
+        ...prev,
+        email,
+        ...data.user,
+      }));
+    }
+    return data;
+  };
+
+  const changePassword = async (passwordData) => {
+    return userAPI.changePassword(passwordData);
+  };
+
   return (
     <ExpenseContext.Provider value={{
       transactions, addTransactions, deleteTransaction,
       fetchTransactions, user, login, register, logout,
+      updateProfile, changeEmail, changePassword,
       loading, authLoading, error,
     }}>
       {children}

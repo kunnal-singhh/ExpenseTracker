@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User.model");
-// ✅ Correct
+
 const protect = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -16,7 +16,7 @@ const protect = async (req, res, next) => {
       return res.status(401).json({ success: false, message: "User no longer exists" });
     }
 
-    next();  // ← this is what was failing
+    next();  
   } catch (err) {
     return res.status(401).json({ success: false, message: "Token invalid or expired" });
   }

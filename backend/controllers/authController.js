@@ -7,14 +7,34 @@ const signToken = (id) =>
     expiresIn: process.env.JWT_EXPIRES_IN || "7d",
   });
 
+const normalizeEmail = (email = "") => email.trim().toLowerCase();
+const isGoogleEmail = (email = "") => /^[^\s@]+@(gmail\.com|googlemail\.com)$/i.test(email);
+const userPayload = (user) => ({
+  id: user._id,
+  name: user.name,
+  email: user.email,
+  avatar: user.avatar,
+  occupation: user.occupation,
+  monthlyIncome: user.monthlyIncome,
+  monthlyBudget: user.monthlyBudget,
+  savingsGoal: user.savingsGoal,
+  preferredCurrency: user.preferredCurrency,
+  spendingFocus: user.spendingFocus,
+});
+
 // ─── @POST /api/auth/register ──────────────────────────
 const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, password } = req.body;
+    const email = normalizeEmail(req.body.email);
 
     // Basic validation
     if (!name || !email || !password) {
       return res.status(400).json({ success: false, message: "All fields are required" });
+    }
+
+    if (!isGoogleEmail(email)) {
+      return res.status(400).json({ success: false, message: "Use a valid Google email address" });
     }
 
     // Check if email already exists
@@ -30,7 +50,7 @@ const register = async (req, res) => {
       success: true,
       message: "Account created successfully",
       token,
-      user: { id: user._id, name: user.name, email: user.email, avatar: user.avatar },
+      user: userPayload(user),
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -40,10 +60,15 @@ const register = async (req, res) => {
 // ─── @POST /api/auth/login ─────────────────────────────
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { password } = req.body;
+    const email = normalizeEmail(req.body.email);
 
     if (!email || !password) {
       return res.status(400).json({ success: false, message: "Email and password are required" });
+    }
+
+    if (!isGoogleEmail(email)) {
+      return res.status(400).json({ success: false, message: "Use a valid Google email address" });
     }
 
     // Explicitly select password (it's excluded by default)
@@ -58,7 +83,7 @@ const login = async (req, res) => {
       success: true,
       message: "Logged in successfully",
       token,
-      user: { id: user._id, name: user.name, email: user.email, avatar: user.avatar },
+      user: userPayload(user),
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -69,7 +94,7 @@ const login = async (req, res) => {
 const getMe = async (req, res) => {
   res.json({
     success: true,
-    user: { id: req.user._id, name: req.user.name, email: req.user.email, avatar: req.user.avatar },
+    user: userPayload(req.user),
   });
 };
 

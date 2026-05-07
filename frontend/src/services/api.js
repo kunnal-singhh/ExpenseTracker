@@ -45,5 +45,6 @@ export const transactionAPI = {
 // ─── User ─────────────────────────────────────────────
 export const userAPI = {
   updateProfile:  (body) => request("/user/profile",  { method: "PUT", body: JSON.stringify(body) }),
+  changeEmail:    (body) => request("/user/email",    { method: "PUT", body: JSON.stringify(body) }),
   changePassword: (body) => request("/user/password", { method: "PUT", body: JSON.stringify(body) }),
 };

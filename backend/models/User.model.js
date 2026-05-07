@@ -15,7 +15,7 @@ const userSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
       trim: true,
-      match: [/^\S+@\S+\.\S+$/, "Please enter a valid email"],
+      match: [/^[^\s@]+@(gmail\.com|googlemail\.com)$/i, "Please enter a valid Google email"],
     },
     password: {
       type: String,
@@ -27,15 +27,47 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    occupation: {
+      type: String,
+      trim: true,
+      maxlength: [80, "Occupation cannot exceed 80 characters"],
+      default: "",
+    },
+    monthlyIncome: {
+      type: Number,
+      min: [0, "Monthly income cannot be negative"],
+      default: null,
+    },
+    monthlyBudget: {
+      type: Number,
+      min: [0, "Monthly budget cannot be negative"],
+      default: null,
+    },
+    savingsGoal: {
+      type: Number,
+      min: [0, "Savings goal cannot be negative"],
+      default: null,
+    },
+    preferredCurrency: {
+      type: String,
+      enum: ["INR", "USD", "EUR", "GBP"],
+      default: "INR",
+    },
+    spendingFocus: {
+      type: String,
+      trim: true,
+      maxlength: [80, "Spending focus cannot exceed 80 characters"],
+      default: "",
+    },
   },
   { timestamps: true }
 );
 
 // ─── Hash password before saving ─────────────────────
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return;
+  if (!this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 12);
-  
+  next();
 });
 
 // ─── Compare entered password with hashed ─────────────

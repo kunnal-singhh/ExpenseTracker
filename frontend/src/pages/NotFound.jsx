@@ -3,33 +3,15 @@ import { NavLink } from "react-router-dom";
 
 const NotFound = () => {
   return (
-    <div className="container-fluid d-flex justify-content-center align-items-center bg-dark"
-         style={{ minHeight: "100%", backgroundColor: "#121212" }}>
-
-      <div
-        className="text-center p-md-5 p-3 rounded-4 mt-5 "
-        style={{
-          backgroundColor: "#1e1e1e",
-          maxWidth: "500px",
-          
-          width: "100%",
-          boxShadow: "0 0 15px rgba(0,0,0,0.6)"
-        }}
-      >
-        <h1 className="display-1 fw-bold text-danger">404</h1>
-
-        <h4 className="text-light mt-3">
-          Page Not Found
-        </h4>
-
-        <p className="text-secondary mt-2">
-          The page you are looking for doesn’t exist or has been moved.
-        </p>
-
-        <NavLink
-          to="/"
-          className="btn btn-primary mt-4 px-4"
-        >
+    <div className="theme-page d-flex justify-content-center align-items-center" style={{ minHeight: "70vh" }}>
+      <div className="theme-card text-center p-4 p-md-5" style={{ maxWidth: 520, width: "100%" }}>
+        <div className="auth-mark mx-auto mb-3 d-flex align-items-center justify-content-center">
+          <i className="fa-solid fa-compass" />
+        </div>
+        <h1 className="display-1 fw-bold mb-0" style={{ color: "var(--app-danger)" }}>404</h1>
+        <h4 className="mt-2 mb-2">Page not found</h4>
+        <p className="text-secondary mb-4">The page you are looking for does not exist or has been moved.</p>
+        <NavLink to="/" className="btn px-4 py-2 fw-semibold" style={{ background: "var(--app-primary)", color: "#fff", borderRadius: 8 }}>
           Go to Dashboard
         </NavLink>
       </div>
