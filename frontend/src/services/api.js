@@ -1,7 +1,8 @@
 // src/services/api.js
 // Central API service — swap out the base URL when deploying
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const rawBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const BASE_URL = rawBaseUrl.replace(/\/$/, "");
 
 // ─── Helper ───────────────────────────────────────────
 function getToken() {
@@ -13,17 +14,24 @@ async function request(endpoint, options = {}) {
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`${BASE_URL}${endpoint}`, {
-    ...options,
-    headers: { ...headers, ...options.headers },
-  });
+  let res;
+  try {
+    res = await fetch(`${BASE_URL}${endpoint}`, {
+      ...options,
+      headers: { ...headers, ...options.headers },
+    });
+  } catch {
+    throw new Error("Cannot reach backend. Check API URL and CORS settings.");
+  }
 
-  const data = await res.json();
-  // if (!res.ok) throw new Error(data.message || "Request failed");
+  const contentType = res.headers.get("content-type") || "";
+  const data = contentType.includes("application/json") ? await res.json() : null;
+
   if (!res.ok) {
-  console.error(data); // debug
-  throw new Error(data.message || "Request failed");
-}
+    console.error(data || `${res.status} ${res.statusText}`);
+    throw new Error(data?.message || "Request failed");
+  }
+
   return data;
 }
 
