@@ -5,6 +5,7 @@ const {
   createTransaction,
   deleteTransaction,
   getSummary,
+  categorizeTransaction,
 } = require("../controllers/transactionController");
 const { protect } = require("../middleware/authMiddleware");
 
@@ -14,6 +15,7 @@ router.use(protect);
 // GET  /api/transactions          → list (with optional ?type=income|expense&page=1&limit=50)
 // POST /api/transactions          → create
 router.route("/").get(getTransactions).post(createTransaction);
+router.post("/categorize", categorizeTransaction);
 
 // GET  /api/transactions/summary  → balance, income, expense totals
 router.get("/summary", getSummary);

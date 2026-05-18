@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import useExpense from "../context/expenseContext";
+import { useToast } from "../components/useToast";
+import { ButtonSpinner } from "../components/UiStates";
 
 const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
 const CURRENCIES = ["INR", "USD", "EUR", "GBP"];
@@ -69,6 +71,7 @@ const SettingRow = ({ icon, iconBg, iconColor, title, subtitle, right, danger, o
 
 export default function Settings() {
   const { logout, user, updateProfile, changeEmail, changePassword } = useExpense();
+  const { showToast } = useToast();
   const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "dark");
   const [notifs, setNotifs] = useState(() => JSON.parse(localStorage.getItem("pref_notifs") || "true"));
   const [profile, setProfile] = useState({
@@ -182,6 +185,7 @@ export default function Settings() {
       await updateProfile(nextProfile);
       setProfile(nextProfile);
       setProfileMessage("Profile details updated.");
+      showToast("Profile details updated.", "success");
       setTimeout(() => setProfileMessage(""), 2500);
     } catch (err) {
       setProfileError(err.message || "Could not update profile.");
@@ -202,6 +206,7 @@ export default function Settings() {
       await changeEmail(nextEmail);
       setEmail(nextEmail);
       setEmailMessage("Email updated successfully.");
+      showToast("Email updated successfully.", "success");
       setTimeout(() => setEmailMessage(""), 2500);
     } catch (err) {
       setEmailError(err.message || "Could not update email.");
@@ -223,6 +228,7 @@ export default function Settings() {
       await changePassword({ currentPassword: passwords.currentPassword, newPassword: passwords.newPassword });
       setPasswords({ currentPassword: "", newPassword: "", confirmPassword: "" });
       setPasswordMessage("Password changed successfully.");
+      showToast("Password changed successfully.", "success");
       setTimeout(() => setPasswordMessage(""), 2500);
     } catch (err) {
       setPasswordError(err.message || "Could not change password.");
@@ -310,7 +316,7 @@ export default function Settings() {
               {profileMessage && <div className="rounded-3 py-2 px-3 mt-3" style={{ background: "rgba(16,185,129,.12)", color: "var(--app-success)", fontSize: 13 }}>{profileMessage}</div>}
 
               <button type="submit" disabled={!hasProfileChanges || savingProfile} className="btn fw-semibold py-3 w-100 mt-3" style={{ background: hasProfileChanges ? "var(--app-primary)" : "var(--app-surface-3)", color: hasProfileChanges ? "#fff" : "var(--app-muted)", border: 0, borderRadius: 8, fontSize: 14 }}>
-                {savingProfile ? "Saving..." : "Save Profile Details"}
+                {savingProfile ? <ButtonSpinner label="Saving..." /> : "Save Profile Details"}
               </button>
             </form>
           </Section>
@@ -323,7 +329,7 @@ export default function Settings() {
               {emailError && <div className="rounded-3 py-2 px-3 mt-3" style={{ background: "rgba(239,68,68,.12)", color: "var(--app-danger)", fontSize: 13 }}>{emailError}</div>}
               {emailMessage && <div className="rounded-3 py-2 px-3 mt-3" style={{ background: "rgba(16,185,129,.12)", color: "var(--app-success)", fontSize: 13 }}>{emailMessage}</div>}
               <button type="submit" disabled={!hasEmailChanges || savingEmail} className="btn fw-semibold py-3 w-100 mt-3" style={{ background: hasEmailChanges ? "var(--app-primary)" : "var(--app-surface-3)", color: hasEmailChanges ? "#fff" : "var(--app-muted)", border: 0, borderRadius: 8, fontSize: 14 }}>
-                {savingEmail ? "Updating..." : "Change Email"}
+                {savingEmail ? <ButtonSpinner label="Updating..." /> : "Change Email"}
               </button>
             </form>
           </Section>
@@ -347,7 +353,7 @@ export default function Settings() {
               {passwordError && <div className="rounded-3 py-2 px-3 mt-3" style={{ background: "rgba(239,68,68,.12)", color: "var(--app-danger)", fontSize: 13 }}>{passwordError}</div>}
               {passwordMessage && <div className="rounded-3 py-2 px-3 mt-3" style={{ background: "rgba(16,185,129,.12)", color: "var(--app-success)", fontSize: 13 }}>{passwordMessage}</div>}
               <button type="submit" disabled={savingPassword} className="btn fw-semibold py-3 w-100 mt-3" style={{ background: "var(--app-primary)", color: "#fff", border: 0, borderRadius: 8, fontSize: 14 }}>
-                {savingPassword ? "Changing..." : "Change Password"}
+                {savingPassword ? <ButtonSpinner label="Changing..." /> : "Change Password"}
               </button>
             </form>
           </Section>

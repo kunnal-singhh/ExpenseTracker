@@ -1,22 +1,63 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import useExpense from "../context/expenseContext";
+import { useToast } from "../components/useToast";
+import { ButtonSpinner, EmptyState } from "../components/UiStates";
+import { EXPENSE_CATEGORIES, detectExpenseCategory } from "../utils/categoryUtils";
+import { transactionAPI } from "../services/api";
 
 const QUICK_AMOUNTS = [250, 500, 1000, 2500];
-const CATEGORIES = ["Food", "Rent", "Travel", "Shopping", "Bills", "Health"];
 
 const fmt = (n) => "\u20b9" + Math.abs(n || 0).toLocaleString("en-IN");
 
 const AddExpense = () => {
   const { transactions, addTransactions } = useExpense();
+  const { showToast } = useToast();
   const [amount, setAmount] = useState("");
   const [to, setTo] = useState("");
+  const [manualCategory, setManualCategory] = useState("");
+  const [aiCategory, setAiCategory] = useState("");
+  const [aiMessage, setAiMessage] = useState("");
+  const [aiStatus, setAiStatus] = useState("idle");
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
 
   const balance = transactions.reduce((a, t) => a + t.amount, 0);
   const amountValue = Number(amount);
   const isOverLimit = amountValue > balance;
   const canSubmit = to.trim() && amountValue > 0 && !isOverLimit && !loading;
+  const detectedCategory = useMemo(() => detectExpenseCategory(to), [to]);
+  const selectedCategory = manualCategory || aiCategory || detectedCategory;
+
+  useEffect(() => {
+    const description = to.trim();
+    if (!description || manualCategory || detectedCategory !== "Other") {
+      setAiCategory("");
+      setAiMessage("");
+      setAiStatus("idle");
+      return;
+    }
+
+    let cancelled = false;
+    setAiStatus("checking");
+    const timer = setTimeout(async () => {
+      try {
+        const data = await transactionAPI.categorize({ description });
+        if (cancelled) return;
+        setAiCategory(data.category && data.category !== "Other" ? data.category : "");
+        setAiMessage(data.error || "");
+        setAiStatus(data.source === "ai" ? "matched" : data.source === "ai_error" ? "error" : "idle");
+      } catch {
+        if (!cancelled) {
+          setAiMessage("Could not reach AI categorization.");
+          setAiStatus("error");
+        }
+      }
+    }, 500);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [to, manualCategory, detectedCategory]);
 
   const monthlyExpense = useMemo(() => {
     const now = new Date();
@@ -43,13 +84,16 @@ const AddExpense = () => {
 
     setLoading(true);
     try {
-      await addTransactions({ to: to.trim(), amount: -amountValue });
-      setSuccess(true);
+      await addTransactions({ to: to.trim(), amount: -amountValue, category: selectedCategory });
+      showToast("Expense recorded successfully.", "success");
       setTo("");
       setAmount("");
-      setTimeout(() => setSuccess(false), 2500);
+      setManualCategory("");
+      setAiCategory("");
+      setAiMessage("");
+      setAiStatus("idle");
     } catch (err) {
-      alert(err.message);
+      showToast(err.message || "Could not record expense.", "error");
     } finally {
       setLoading(false);
     }
@@ -92,12 +136,6 @@ const AddExpense = () => {
               </span>
             </div>
 
-            {success && (
-              <div className="rounded-3 py-2 px-3 mb-3" style={{ background: "rgba(16,185,129,.12)", color: "#10b981", fontSize: 13 }}>
-                Expense recorded successfully.
-              </div>
-            )}
-
             <form onSubmit={handleSubmit} className="d-flex flex-column gap-3">
               <div>
                 <label className="text-secondary mb-2" style={{ fontSize: 11, fontWeight: 700 }}>RECIPIENT / CATEGORY</label>
@@ -107,8 +145,37 @@ const AddExpense = () => {
                   style={{ fontSize: 14 }}
                   placeholder="e.g. Grocery, Rent, Uber"
                   value={to}
-                  onChange={(e) => setTo(e.target.value)}
+                  onChange={(e) => {
+                    setTo(e.target.value);
+                    setManualCategory("");
+                    setAiCategory("");
+                    setAiMessage("");
+                  }}
                 />
+                {to.trim() && (
+                  <div className="d-flex align-items-center gap-2 mt-2 flex-wrap">
+                    <span className="text-secondary" style={{ fontSize: 11, fontWeight: 700 }}>
+                      SMART CATEGORY
+                    </span>
+                    <span
+                      className="rounded-3 px-2 py-1 d-inline-flex align-items-center gap-2"
+                      style={{ background: "rgba(59,130,246,.12)", color: "var(--app-primary)", fontSize: 12 }}
+                    >
+                      <i className="fa-solid fa-wand-magic-sparkles" style={{ fontSize: 11 }} />
+                      {aiStatus === "checking" ? "Checking AI..." : aiStatus === "error" ? "AI unavailable" : selectedCategory}
+                    </span>
+                    {aiStatus === "matched" && (
+                      <span className="text-secondary" style={{ fontSize: 11 }}>
+                        AI fallback
+                      </span>
+                    )}
+                    {aiStatus === "error" && (
+                      <span className="text-secondary" style={{ fontSize: 11 }} title={aiMessage}>
+                        Using Other
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -133,12 +200,15 @@ const AddExpense = () => {
               <div>
                 <div className="text-secondary mb-2" style={{ fontSize: 11, fontWeight: 700 }}>QUICK CATEGORIES</div>
                 <div className="d-flex flex-wrap gap-2">
-                  {CATEGORIES.map((category) => (
+                  {EXPENSE_CATEGORIES.map((category) => (
                     <button
                       key={category}
                       type="button"
-                      onClick={() => setTo(category)}
-                      className={`btn btn-sm rounded-3 theme-chip ${to === category ? "active" : ""}`}
+                      onClick={() => {
+                        setManualCategory(category);
+                        if (!to.trim()) setTo(category);
+                      }}
+                      className={`btn btn-sm rounded-3 theme-chip ${selectedCategory === category ? "active" : ""}`}
                       style={{
                         fontSize: 12,
                       }}
@@ -178,7 +248,7 @@ const AddExpense = () => {
                   border: "none",
                 }}
               >
-                {loading ? "Recording..." : "Record Expense"}
+                {loading ? <ButtonSpinner label="Recording..." /> : "Record Expense"}
               </button>
             </form>
           </div>
@@ -197,7 +267,7 @@ const AddExpense = () => {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="text-truncate fw-semibold" style={{ fontSize: 14 }}>{to || "Expense category"}</div>
-                  <div className="text-secondary" style={{ fontSize: 12 }}>Debited from available balance</div>
+                  <div className="text-secondary" style={{ fontSize: 12 }}>{to.trim() ? `${selectedCategory} - debited from available balance` : "Debited from available balance"}</div>
                 </div>
                 <div className="fw-semibold" style={{ color: "#ef4444", fontSize: 14 }}>
                   -{fmt(amountValue)}
@@ -215,9 +285,11 @@ const AddExpense = () => {
               </div>
 
               {recentExpenses.length === 0 ? (
-                <div className="d-flex align-items-center justify-content-center text-secondary" style={{ height: 156, fontSize: 13 }}>
-                  No expenses recorded yet
-                </div>
+                <EmptyState
+                  icon="fa-cart-shopping"
+                  title="No expenses yet"
+                  message="Record your first payment to build a recent spending trail."
+                />
               ) : (
                 <div className="d-flex flex-column gap-2">
                   {recentExpenses.map((expense) => (
@@ -230,7 +302,7 @@ const AddExpense = () => {
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div className="text-truncate fw-semibold" style={{ fontSize: 13 }}>{expense.to}</div>
-                        <div className="text-secondary" style={{ fontSize: 11 }}>{expense.date}</div>
+                        <div className="text-secondary" style={{ fontSize: 11 }}>{expense.category || "Expense"} - {expense.date}</div>
                       </div>
                       <div className="fw-semibold" style={{ color: "#ef4444", fontSize: 13 }}>-{fmt(expense.amount)}</div>
                     </div>

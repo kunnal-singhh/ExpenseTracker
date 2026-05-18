@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect } from "react";
 import { transactionAPI, authAPI, userAPI } from "../services/api";
 
@@ -8,15 +9,19 @@ export const ExpenseProvider = ({ children }) => {
   const [user, setUser]                 = useState(null);
   const [loading, setLoading]           = useState(true);
   const [authLoading, setAuthLoading]   = useState(false);
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
   const [error, setError]               = useState(null);
 
   // ── plain async fn, not useCallback ──────────────────
   const fetchTransactions = async () => {
+    setTransactionsLoading(true);
     try {
       const data = await transactionAPI.getAll();
       setTransactions(data.transactions);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setTransactionsLoading(false);
     }
   };
 
@@ -35,7 +40,7 @@ export const ExpenseProvider = ({ children }) => {
       }
     };
     init();
-  }, []); // eslint-disable-line
+  }, []);
 
   const addTransactions = async (transactionData) => {
     const data = await transactionAPI.create(transactionData); // let it throw
@@ -112,7 +117,7 @@ export const ExpenseProvider = ({ children }) => {
       transactions, addTransactions, deleteTransaction,
       fetchTransactions, user, login, register, logout,
       updateProfile, changeEmail, changePassword,
-      loading, authLoading, error,
+      loading, authLoading, transactionsLoading, error,
     }}>
       {children}
     </ExpenseContext.Provider>

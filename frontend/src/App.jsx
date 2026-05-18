@@ -15,6 +15,7 @@ import Auth from "./pages/Auth";
 import { ExpenseProvider } from "./context/expenseContext";
 import AIAssistant from "./components/AIAssistant";
 import useExpense from "./context/expenseContext";
+import { ToastProvider } from "./components/ToastProvider";
 
 // ─── Private Route Guard ───────────────────────────────
 // Redirects to /login if the user is not authenticated
@@ -75,7 +76,9 @@ function AppRoutes() {
 function App() {
   return (
     <ExpenseProvider>
-      <AppRoutes />
+      <ToastProvider>
+        <AppRoutes />
+      </ToastProvider>
     </ExpenseProvider>
   );
 }

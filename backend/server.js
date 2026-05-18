@@ -17,6 +17,11 @@ const allowedOrigins = (process.env.CLIENT_URL || "")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+const localDevOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+];
+
 const allowedDeployHosts = [
   /\.vercel\.app$/,
   /\.netlify\.app$/,
@@ -27,6 +32,7 @@ function isAllowedOrigin(origin) {
   if (!origin) return true;
   if (allowedOrigins.length === 0) return true;
   if (allowedOrigins.includes(origin)) return true;
+  if (localDevOrigins.includes(origin)) return true;
 
   try {
     const { hostname } = new URL(origin);
@@ -64,7 +70,7 @@ app.use("/api/transactions", transactionRoutes);
 app.use("/api/user", userRoutes);
 
 // ─── Health Check ─────────────────────────────────────
-app.get(["/", "/api/health"], (req, res) => {
+app.get(["/", "/api", "/api/health"], (req, res) => {
   res.json({ status: "OK", message: "Expense Tracker API is running" });
 });
 
@@ -78,7 +84,17 @@ app.use((err, req, res, next) => {
 });
 
 // ─── Connect DB & Start Server ────────────────────────
-const PORT = process.env.PORT ;
+const PORT = process.env.PORT || 5000;
+
+if (!process.env.MONGO_URI) {
+  console.error("Missing MONGO_URI in backend environment.");
+  process.exit(1);
+}
+
+if (!process.env.JWT_SECRET) {
+  console.error("Missing JWT_SECRET in backend environment.");
+  process.exit(1);
+}
 
 mongoose
   .connect(process.env.MONGO_URI)

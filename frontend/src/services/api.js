@@ -1,7 +1,7 @@
 // src/services/api.js
 // Central API service — swap out the base URL when deploying
 
-const rawBaseUrl = import.meta.env.VITE_API_URL// || "http://localhost:5000/api";
+const rawBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 const BASE_URL = rawBaseUrl.replace(/\/$/, "");
 
 // ─── Helper ───────────────────────────────────────────
@@ -46,6 +46,7 @@ export const authAPI = {
 export const transactionAPI = {
   getAll:  (params = "") => request(`/transactions${params}`),
   create:  (body)        => request("/transactions", { method: "POST", body: JSON.stringify(body) }),
+  categorize: (body)     => request("/transactions/categorize", { method: "POST", body: JSON.stringify(body) }),
   delete:  (id)          => request(`/transactions/${id}`, { method: "DELETE" }),
   summary: ()            => request("/transactions/summary"),
 };

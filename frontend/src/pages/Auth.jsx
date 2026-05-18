@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useExpense from "../context/expenseContext";
+import { ButtonSpinner } from "../components/UiStates";
+import { useToast } from "../components/useToast";
 
 const isGoogleEmail = (email = "") => /^[^\s@]+@(gmail\.com|googlemail\.com)$/i.test(email.trim());
 
 export default function Auth() {
   const { login, register, authLoading } = useExpense();
+  const { showToast } = useToast();
   const navigate = useNavigate();
 
   const [mode, setMode] = useState("login");
@@ -29,6 +32,7 @@ export default function Auth() {
         if (!form.name.trim()) return setError("Name is required");
         await register(form.name.trim(), form.email, form.password);
       }
+      showToast(mode === "login" ? "Welcome back." : "Account created successfully.", "success");
       navigate("/");
     } catch (err) {
       setError(err.message || "Something went wrong");
@@ -74,7 +78,7 @@ export default function Auth() {
           </div>
 
           <button type="submit" className="btn fw-semibold py-3 w-100 mt-1" disabled={authLoading} style={{ background: "var(--app-primary)", color: "#fff", border: 0, borderRadius: 8 }}>
-            {authLoading ? "Please wait..." : mode === "login" ? "Log In" : "Create Account"}
+            {authLoading ? <ButtonSpinner label="Please wait..." /> : mode === "login" ? "Log In" : "Create Account"}
           </button>
         </form>
 

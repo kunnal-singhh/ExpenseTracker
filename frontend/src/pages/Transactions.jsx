@@ -1,10 +1,14 @@
 import { useMemo, useState } from "react";
 import useExpense from "../context/expenseContext";
+import { useToast } from "../components/useToast";
+import { EmptyState, TransactionSkeleton } from "../components/UiStates";
 
 const fmt = (n) => "\u20b9" + Math.abs(n || 0).toLocaleString("en-IN");
+const transactionCategory = (transaction) => transaction.category || transaction.to || "Other";
 
 const Transactions = () => {
-  const { transactions, deleteTransaction } = useExpense();
+  const { transactions, deleteTransaction, transactionsLoading } = useExpense();
+  const { showToast } = useToast();
   const [filterType, setFilterType] = useState("all");
   const [deleting, setDeleting] = useState(null);
 
@@ -25,8 +29,9 @@ const Transactions = () => {
     setDeleting(id);
     try {
       await deleteTransaction(id);
+      showToast("Transaction deleted.", "success");
     } catch (err) {
-      alert(err.message || "Failed to delete");
+      showToast(err.message || "Failed to delete transaction.", "error");
     } finally {
       setDeleting(null);
     }
@@ -68,11 +73,14 @@ const Transactions = () => {
       </div>
 
       <div className="theme-card p-2">
-        {filteredTransactions.length === 0 ? (
-          <div className="text-center py-5">
-            <i className="fa-solid fa-receipt text-secondary mb-3" style={{ fontSize: "2rem", opacity: 0.35 }} />
-            <p className="text-secondary mb-0" style={{ fontSize: 14 }}>No transactions found in this category.</p>
-          </div>
+        {transactionsLoading ? (
+          <TransactionSkeleton rows={5} />
+        ) : filteredTransactions.length === 0 ? (
+          <EmptyState
+            icon={filterType === "income" ? "fa-circle-arrow-down" : filterType === "expense" ? "fa-circle-arrow-up" : "fa-receipt"}
+            title="No transactions found"
+            message="Try another filter or add a new balance or expense entry."
+          />
         ) : (
           <div className="d-flex flex-column">
             {filteredTransactions.map((t) => {
@@ -86,7 +94,7 @@ const Transactions = () => {
 
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="fw-semibold text-truncate" style={{ fontSize: 14 }}>{t.to}</div>
-                    <div className="text-secondary" style={{ fontSize: 11 }}>{t.date} {t.time ? `- ${t.time}` : ""}</div>
+                    <div className="text-secondary" style={{ fontSize: 11 }}>{isIncome ? "Income" : transactionCategory(t)} - {t.date} {t.time ? `- ${t.time}` : ""}</div>
                   </div>
 
                   <div className="text-end">

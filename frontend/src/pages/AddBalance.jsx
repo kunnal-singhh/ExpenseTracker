@@ -1,18 +1,60 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import useExpense from "../context/expenseContext";
+import { useToast } from "../components/useToast";
+import { ButtonSpinner } from "../components/UiStates";
+import { transactionAPI } from "../services/api";
+import { INCOME_CATEGORIES, detectIncomeCategory } from "../utils/categoryUtils";
 
 const QUICK_AMOUNTS = [500, 1000, 5000, 10000];
-const SOURCES = ["Salary", "Freelance", "Savings", "Refund", "Bonus"];
 const fmt = (n) => "\u20b9" + Math.abs(n || 0).toLocaleString("en-IN");
 
 const AddBalance = () => {
   const { transactions, addTransactions } = useExpense();
+  const { showToast } = useToast();
   const [amount, setAmount] = useState("");
   const [source, setSource] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [manualCategory, setManualCategory] = useState("");
+  const [aiCategory, setAiCategory] = useState("");
+  const [aiMessage, setAiMessage] = useState("");
+  const [aiStatus, setAiStatus] = useState("idle");
   const [loading, setLoading] = useState(false);
 
   const balance = transactions.reduce((a, t) => a + t.amount, 0);
+  const detectedCategory = useMemo(() => detectIncomeCategory(source), [source]);
+  const selectedCategory = manualCategory || aiCategory || detectedCategory;
+
+  useEffect(() => {
+    const description = source.trim();
+    if (!description || manualCategory || detectedCategory !== "Other") {
+      setAiCategory("");
+      setAiMessage("");
+      setAiStatus("idle");
+      return;
+    }
+
+    let cancelled = false;
+    setAiStatus("checking");
+    const timer = setTimeout(async () => {
+      try {
+        const data = await transactionAPI.categorize({ description, type: "income" });
+        if (cancelled) return;
+        setAiCategory(data.category && data.category !== "Other" ? data.category : "");
+        setAiMessage(data.error || "");
+        setAiStatus(data.source === "ai" ? "matched" : data.source === "ai_error" ? "error" : "idle");
+      } catch {
+        if (!cancelled) {
+          setAiMessage("Could not reach AI categorization.");
+          setAiStatus("error");
+        }
+      }
+    }, 500);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [source, manualCategory, detectedCategory]);
+
   const incomeThisMonth = useMemo(() => {
     const now = new Date();
     return transactions
@@ -32,13 +74,16 @@ const AddBalance = () => {
 
     setLoading(true);
     try {
-      await addTransactions({ to: source.trim(), amount: amountValue });
-      setSuccess(true);
+      await addTransactions({ to: source.trim(), amount: amountValue, category: selectedCategory });
+      showToast("Balance updated successfully.", "success");
       setSource("");
       setAmount("");
-      setTimeout(() => setSuccess(false), 2500);
+      setManualCategory("");
+      setAiCategory("");
+      setAiMessage("");
+      setAiStatus("idle");
     } catch (err) {
-      alert(err.message);
+      showToast(err.message || "Could not add balance.", "error");
     } finally {
       setLoading(false);
     }
@@ -74,12 +119,35 @@ const AddBalance = () => {
               <span className="rounded-3 px-2 py-1" style={{ background: "rgba(16,185,129,.12)", color: "var(--app-success)", fontSize: 11 }}>Credit entry</span>
             </div>
 
-            {success && <div className="rounded-3 py-2 px-3 mb-3" style={{ background: "rgba(16,185,129,.12)", color: "var(--app-success)", fontSize: 13 }}>Balance updated successfully.</div>}
-
             <form onSubmit={handleSubmit} className="d-flex flex-column gap-3">
               <div>
                 <label className="text-secondary mb-2" style={{ fontSize: 11, fontWeight: 700 }}>SOURCE NAME</label>
-                <input type="text" className="form-control theme-input py-3" placeholder="e.g. Monthly salary" value={source} onChange={(e) => setSource(e.target.value)} />
+                <input
+                  type="text"
+                  className="form-control theme-input py-3"
+                  placeholder="e.g. Monthly salary"
+                  value={source}
+                  onChange={(e) => {
+                    setSource(e.target.value);
+                    setManualCategory("");
+                    setAiCategory("");
+                    setAiMessage("");
+                  }}
+                />
+                {source.trim() && (
+                  <div className="d-flex align-items-center gap-2 mt-2 flex-wrap">
+                    <span className="text-secondary" style={{ fontSize: 11, fontWeight: 700 }}>SMART SOURCE</span>
+                    <span
+                      className="rounded-3 px-2 py-1 d-inline-flex align-items-center gap-2"
+                      style={{ background: "rgba(16,185,129,.12)", color: "var(--app-success)", fontSize: 12 }}
+                    >
+                      <i className="fa-solid fa-wand-magic-sparkles" style={{ fontSize: 11 }} />
+                      {aiStatus === "checking" ? "Checking AI..." : aiStatus === "error" ? "AI unavailable" : selectedCategory}
+                    </span>
+                    {aiStatus === "matched" && <span className="text-secondary" style={{ fontSize: 11 }}>AI fallback</span>}
+                    {aiStatus === "error" && <span className="text-secondary" style={{ fontSize: 11 }} title={aiMessage}>Using Other</span>}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -93,8 +161,19 @@ const AddBalance = () => {
               <div>
                 <div className="theme-section-label mb-2">Common sources</div>
                 <div className="d-flex flex-wrap gap-2">
-                  {SOURCES.map((item) => (
-                    <button key={item} type="button" onClick={() => setSource(item)} className={`btn btn-sm rounded-3 theme-chip ${source === item ? "active" : ""}`} style={{ fontSize: 12 }}>{item}</button>
+                  {INCOME_CATEGORIES.map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => {
+                        setManualCategory(item);
+                        if (!source.trim()) setSource(item);
+                      }}
+                      className={`btn btn-sm rounded-3 theme-chip ${selectedCategory === item ? "active" : ""}`}
+                      style={{ fontSize: 12 }}
+                    >
+                      {item}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -109,7 +188,7 @@ const AddBalance = () => {
               </div>
 
               <button type="submit" disabled={!canSubmit} className="btn fw-semibold py-3 mt-2 w-100" style={{ background: canSubmit ? "var(--app-success)" : "var(--app-surface-3)", color: canSubmit ? "#fff" : "var(--app-muted)", borderRadius: 8, border: "none", fontSize: 14 }}>
-                {loading ? "Processing..." : "Add to Balance"}
+                {loading ? <ButtonSpinner label="Processing..." /> : "Add to Balance"}
               </button>
             </form>
           </div>
@@ -125,7 +204,7 @@ const AddBalance = () => {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="text-truncate fw-semibold" style={{ fontSize: 14 }}>{source || "Income source"}</div>
-                  <div className="text-secondary" style={{ fontSize: 12 }}>Credited to available balance</div>
+                  <div className="text-secondary" style={{ fontSize: 12 }}>{source.trim() ? `${selectedCategory} - credited to available balance` : "Credited to available balance"}</div>
                 </div>
                 <div className="fw-semibold" style={{ color: "var(--app-success)", fontSize: 14 }}>+{fmt(amountValue)}</div>
               </div>

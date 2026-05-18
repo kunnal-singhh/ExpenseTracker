@@ -11,10 +11,10 @@ const Layout = () => {
 
       <div 
         className="container-fluid overflow-y-auto p-0 content-wrapper app-main" 
-        style={{ flex: 1, marginLeft: '3.4rem',paddingRight:'.7rem' }}
+        style={{ flex: 1 }}
       > 
         {/* Centering Wrapper: col-11 for mobile, col-lg-9 for 75% width */}
-        <div className="col-11 col-lg-8 mx-auto">
+        <div className="page-container mx-auto">
            <Outlet />
         </div>
       </div>
