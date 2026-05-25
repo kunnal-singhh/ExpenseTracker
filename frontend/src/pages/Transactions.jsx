@@ -1,22 +1,34 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import useExpense from "../context/expenseContext";
 import { useToast } from "../components/useToast";
 import { EmptyState, TransactionSkeleton } from "../components/UiStates";
 
 const fmt = (n) => "\u20b9" + Math.abs(n || 0).toLocaleString("en-IN");
 const transactionCategory = (transaction) => transaction.category || transaction.to || "Other";
+const transactionId = (transaction) => transaction._id || transaction.id;
+const displayValue = (value) => value || "Not available";
 
 const Transactions = () => {
   const { transactions, deleteTransaction, transactionsLoading } = useExpense();
   const { showToast } = useToast();
   const [filterType, setFilterType] = useState("all");
   const [deleting, setDeleting] = useState(null);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
 
-  const filteredTransactions = transactions.filter((t) => {
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setSelectedTransaction(null);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const filteredTransactions = useMemo(() => transactions.filter((t) => {
     if (filterType === "income") return t.amount > 0;
     if (filterType === "expense") return t.amount < 0;
     return true;
-  });
+  }), [transactions, filterType]);
 
   const totals = useMemo(() => {
     const income = transactions.filter((t) => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
@@ -29,6 +41,9 @@ const Transactions = () => {
     setDeleting(id);
     try {
       await deleteTransaction(id);
+      if (selectedTransaction && transactionId(selectedTransaction) === id) {
+        setSelectedTransaction(null);
+      }
       showToast("Transaction deleted.", "success");
     } catch (err) {
       showToast(err.message || "Failed to delete transaction.", "error");
@@ -87,7 +102,19 @@ const Transactions = () => {
               const isIncome = t.amount > 0;
               const id = t._id || t.id;
               return (
-                <div key={id} className="theme-row d-flex align-items-center gap-3 px-3 py-3">
+                <div
+                  key={id}
+                  className="theme-row transaction-row d-flex align-items-center gap-3 px-3 py-3"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedTransaction(t)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setSelectedTransaction(t);
+                    }
+                  }}
+                >
                   <div className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: 42, height: 42, background: isIncome ? "rgba(16,185,129,.12)" : "rgba(239,68,68,.12)" }}>
                     <i className={`fa-solid ${isIncome ? "fa-circle-arrow-down" : "fa-circle-arrow-up"}`} style={{ color: isIncome ? "var(--app-success)" : "var(--app-danger)", fontSize: 16 }} />
                   </div>
@@ -102,7 +129,15 @@ const Transactions = () => {
                     <div className="text-secondary" style={{ fontSize: 10 }}>{isIncome ? "Credit" : "Debit"}</div>
                   </div>
 
-                  <button className="btn btn-link p-2 border-0" title="Delete transaction" onClick={() => handleDelete(id)} disabled={deleting === id}>
+                  <button
+                    className="btn btn-link p-2 border-0"
+                    title="Delete transaction"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleDelete(id);
+                    }}
+                    disabled={deleting === id}
+                  >
                     {deleting === id ? <span className="spinner-border spinner-border-sm text-secondary" /> : <i className="fa-solid fa-trash-can text-secondary" style={{ fontSize: 14, opacity: 0.55 }} />}
                   </button>
                 </div>
@@ -111,6 +146,76 @@ const Transactions = () => {
           </div>
         )}
       </div>
+
+      {selectedTransaction && (
+        <div className="transaction-detail-backdrop" role="presentation" onClick={() => setSelectedTransaction(null)}>
+          <div className="transaction-detail-card theme-card" role="dialog" aria-modal="true" aria-labelledby="transaction-detail-title" onClick={(event) => event.stopPropagation()}>
+            {(() => {
+              const t = selectedTransaction;
+              const isIncome = t.amount > 0;
+              const id = transactionId(t);
+              const category = transactionCategory(t);
+              return (
+                <>
+                  <div className="d-flex align-items-start justify-content-between gap-3 p-3 p-md-4 border-bottom" style={{ borderColor: "var(--app-border-soft)" }}>
+                    <div className="d-flex align-items-center gap-3" style={{ minWidth: 0 }}>
+                      <div className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: 46, height: 46, background: isIncome ? "rgba(16,185,129,.12)" : "rgba(239,68,68,.12)" }}>
+                        <i className={`fa-solid ${isIncome ? "fa-circle-arrow-down" : "fa-circle-arrow-up"}`} style={{ color: isIncome ? "var(--app-success)" : "var(--app-danger)", fontSize: 18 }} />
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <h5 id="transaction-detail-title" className="fw-semibold mb-1 text-truncate">{displayValue(t.to)}</h5>
+                        <small className="text-secondary">{isIncome ? "Income" : "Expense"} transaction</small>
+                      </div>
+                    </div>
+                    <button type="button" className="btn btn-link border-0 p-1 text-secondary" aria-label="Close details" onClick={() => setSelectedTransaction(null)}>
+                      <i className="fa-solid fa-xmark" style={{ fontSize: 18 }} />
+                    </button>
+                  </div>
+
+                  <div className="p-3 p-md-4">
+                    <div className="transaction-amount-card mb-3" style={{ borderColor: isIncome ? "rgba(16,185,129,.28)" : "rgba(239,68,68,.28)" }}>
+                      <span className="text-secondary">Amount</span>
+                      <strong style={{ color: isIncome ? "var(--app-success)" : "var(--app-danger)" }}>{isIncome ? "+" : "-"}{fmt(t.amount)}</strong>
+                    </div>
+
+                    <div className="transaction-detail-grid">
+                      <div className="transaction-detail-item">
+                        <span>Type</span>
+                        <strong>{isIncome ? "Credit" : "Debit"}</strong>
+                      </div>
+                      <div className="transaction-detail-item">
+                        <span>Category</span>
+                        <strong>{displayValue(category)}</strong>
+                      </div>
+                      <div className="transaction-detail-item">
+                        <span>Date</span>
+                        <strong>{displayValue(t.date)}</strong>
+                      </div>
+                      <div className="transaction-detail-item">
+                        <span>Time</span>
+                        <strong>{displayValue(t.time)}</strong>
+                      </div>
+                      <div className="transaction-detail-item">
+                        <span>Source / Merchant</span>
+                        <strong>{displayValue(t.to)}</strong>
+                      </div>
+                    </div>
+
+                    <div className="d-flex gap-2 mt-4">
+                      <button type="button" className="btn theme-chip flex-grow-1 py-2" onClick={() => setSelectedTransaction(null)}>
+                        Close
+                      </button>
+                      <button type="button" className="btn flex-grow-1 py-2" style={{ background: "rgba(239,68,68,.12)", color: "var(--app-danger)", border: "1px solid rgba(239,68,68,.28)" }} onClick={() => handleDelete(id)} disabled={deleting === id}>
+                        {deleting === id ? "Deleting..." : "Delete"}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

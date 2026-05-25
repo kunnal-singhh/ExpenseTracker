@@ -11,6 +11,7 @@ const SideMenu = () => {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(true);
   const [isManual, setIsManual] = useState(true);
+  const [showProfilePhoto, setShowProfilePhoto] = useState(false);
 
   const isMobile = () => window.innerWidth < 768;
 
@@ -29,6 +30,11 @@ const SideMenu = () => {
 
   useEffect(() => {
     const handleKeyDown = (event) => {
+      if (event.key === "Escape" && showProfilePhoto) {
+        setShowProfilePhoto(false);
+        return;
+      }
+
       if (event.key === "Escape" && !collapsed && isMobile()) {
         setCollapsed(true);
       }
@@ -36,7 +42,7 @@ const SideMenu = () => {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [collapsed]);
+  }, [collapsed, showProfilePhoto]);
 
   const handleToggle = () => {
     const newState = !collapsed;
@@ -58,6 +64,27 @@ const SideMenu = () => {
     ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "?";
 
+  const renderProfilePhoto = (compact = false) => (
+    <button
+      type="button"
+      className={`profile-photo-btn ${compact ? "compact" : ""}`}
+      onClick={() => setShowProfilePhoto(true)}
+      aria-label="View profile photo"
+    >
+      {user?.avatar ? (
+        <img
+          src={user.avatar}
+          alt="profile"
+          className={compact ? "collapsed-profile-img" : "profile-img mb-2"}
+        />
+      ) : (
+        <div className={compact ? "collapsed-profile-img bg-primary text-white fw-bold" : "profile-img profile-initials mb-2 bg-primary text-white fw-bold"}>
+          {initials}
+        </div>
+      )}
+    </button>
+  );
+
   return (
     <>
       {!collapsed && (
@@ -71,27 +98,18 @@ const SideMenu = () => {
 
       <div className={`sidebar d-flex flex-column ${collapsed ? "collapsed" : ""}`}>
         {/* Profile */}
-        <div className="pt-4 text-center pb-4">
+        <div className="profile-area pt-4 text-center pb-4">
           {!collapsed ? (
             <>
-              {user?.avatar ? (
-                <img
-                  src={user.avatar}
-                  alt="profile"
-                  className="profile-img mb-2"
-                />
-              ) : (
-                <div
-                  className="mx-auto mb-2 d-flex align-items-center justify-content-center rounded-circle bg-primary text-white fw-bold"
-                  style={{ width: 70, height: 70, fontSize: 24 }}
-                >
-                  {initials}
-                </div>
-              )}
+              {renderProfilePhoto()}
               <h6 className="mb-0">{user?.name || "User"}</h6>
               <small className="text-secondary">Expense Tracker</small>
             </>
-          ) : null}
+          ) : (
+            <div className="collapsed-profile">
+              {renderProfilePhoto(true)}
+            </div>
+          )}
         </div>
 
         {/* Toggle Button */}
@@ -157,6 +175,32 @@ const SideMenu = () => {
           />
         </div>
       </div>
+
+      {showProfilePhoto && (
+        <div className="profile-photo-backdrop" role="presentation" onClick={() => setShowProfilePhoto(false)}>
+          <div className="profile-photo-card theme-card" role="dialog" aria-modal="true" aria-labelledby="profile-photo-title" onClick={(event) => event.stopPropagation()}>
+            <div className="d-flex align-items-center justify-content-between gap-3 px-3 px-md-4 py-3 border-bottom" style={{ borderColor: "var(--app-border-soft)" }}>
+              <div style={{ minWidth: 0 }}>
+                <h5 id="profile-photo-title" className="fw-semibold mb-0 text-truncate">{user?.name || "User"}</h5>
+                <small className="text-secondary">Profile photo</small>
+              </div>
+              <button type="button" className="btn btn-link border-0 p-1 text-secondary" aria-label="Close profile photo" onClick={() => setShowProfilePhoto(false)}>
+                <i className="fa-solid fa-xmark" style={{ fontSize: 18 }} />
+              </button>
+            </div>
+
+            <div className="profile-photo-preview p-3 p-md-4">
+              {user?.avatar ? (
+                <img src={user.avatar} alt="profile enlarged" />
+              ) : (
+                <div className="profile-photo-placeholder bg-primary text-white fw-bold">
+                  {initials}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
