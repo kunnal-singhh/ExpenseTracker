@@ -12,9 +12,15 @@
   height: 100vh;
   background-color: var(--app-sidebar) !important;
   color: var(--app-text) !important;
-  transition: width 0.3s ease;
+  border-right: 1px solid var(--app-border-soft);
+  box-shadow: 10px 0 35px rgba(0, 0, 0, .14);
+  transition: width 0.3s ease, transform 0.3s ease, background-color .2s ease, color .2s ease, border-color .2s ease;
   position: fixed;
-  z-index: 10;
+  left: 0;
+  top: 0;
+  z-index: 1000;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .sidebar.collapsed {
@@ -31,6 +37,7 @@
   color: var(--app-text) !important;
   font-size: 20px;
   cursor: pointer;
+  z-index: 2;
 }
 
 .sidebar.collapsed .toggle-btn {
@@ -66,8 +73,7 @@
 
 .menu a,
 .menu button.menu-link {
-  /* color: var(--app-muted-2); */
-  color:rgb(208, 202, 202);
+  color: var(--app-muted-2);
   text-decoration: none;
   display: flex;
   align-items: center;
@@ -77,6 +83,7 @@
   border-radius: 6px;
   transition: background 0.2s ease, color 0.2s ease;
   width: 100%;
+  background: transparent;
 }
 
 .menu a:hover,
@@ -93,6 +100,26 @@
 .sidebar.collapsed .menu a {
   font-size: 18px;
   justify-content: center;
+}
+
+.sidebar.collapsed .menu button.menu-link {
+  font-size: 18px;
+  justify-content: center;
+}
+
+.logout-link,
+.logout-link:hover {
+  color: var(--app-danger) !important;
+}
+
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  border: 0;
+  background: rgba(0, 0, 0, .42);
+  z-index: 999;
+  padding: 0;
 }
 
 /* ================= LOGO ================= */
@@ -266,6 +293,10 @@ body {
 .content-wrapper {
   margin-left: 3.4rem;
   padding-right: .7rem !important;
+}
+
+.app-shell:has(.sidebar:not(.collapsed)) .content-wrapper {
+  margin-left: 250px;
 }
 
 h1, h2, h3, h4, h5, h6,
@@ -830,17 +861,23 @@ h1, h2, h3, h4, h5, h6,
   cursor: not-allowed;
 }
 
-@media (max-width: 576px) {
+@media (max-width: 767.98px) {
   body {
     font-size: 14px;
   }
 
-  .sidebar {
+  .sidebar,
+  .sidebar.collapsed {
     width: 56px;
   }
 
-  .sidebar.collapsed {
-    width: 56px;
+  .sidebar:not(.collapsed) {
+    width: min(82vw, 280px);
+    box-shadow: 18px 0 42px rgba(0, 0, 0, .3);
+  }
+
+  .sidebar-backdrop {
+    display: block;
   }
 
   .toggle-btn {
@@ -851,14 +888,14 @@ h1, h2, h3, h4, h5, h6,
     left: 18px;
   }
 
-  .menu {
+  .sidebar.collapsed .menu {
     padding: 0;
     align-items: center;
     gap: .55rem;
   }
 
-  .menu a,
-  .menu button.menu-link {
+  .sidebar.collapsed .menu a,
+  .sidebar.collapsed .menu button.menu-link {
     width: 40px;
     height: 40px;
     justify-content: center;
@@ -866,9 +903,36 @@ h1, h2, h3, h4, h5, h6,
     font-size: 16px;
   }
 
+  .sidebar:not(.collapsed) .menu {
+    align-items: stretch;
+    gap: .25rem;
+    margin-top: 1rem;
+    padding: 0 1rem;
+  }
+
+  .sidebar:not(.collapsed) .menu a,
+  .sidebar:not(.collapsed) .menu button.menu-link {
+    width: 100%;
+    min-height: 42px;
+    justify-content: flex-start;
+    padding: 8px 12px;
+  }
+
+  .sidebar:not(.collapsed) .logo-area {
+    margin-top: auto;
+  }
+
+  .sidebar:not(.collapsed) .logo {
+    width: 120px;
+  }
+
   .content-wrapper {
     margin-left: 56px;
     padding-right: 0 !important;
+  }
+
+  .app-shell:has(.sidebar:not(.collapsed)) .content-wrapper {
+    margin-left: 56px;
   }
 
   .page-container {

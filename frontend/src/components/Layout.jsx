@@ -4,7 +4,7 @@ import { Outlet } from "react-router-dom";
 // Layout.jsx
 const Layout = () => {
   return (
-    <div className="d-flex vh-100 overflow-hidden">
+    <div className="app-shell d-flex vh-100 overflow-hidden">
      <div className="sidebar-container">
         <SideMenu />
       </div>
