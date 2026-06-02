@@ -1,11 +1,49 @@
-import React from "react";
+import React, { useState } from "react";
+import { supportAPI } from "../services/api";
+import { ButtonSpinner } from "../components/UiStates";
 
 export default function Support() {
+  const [form, setForm] = useState({ subject: "", message: "" });
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+
   const faqs = [
     { q: "Is my data safe?", a: "Yes, your transactions stay tied to your private account.", icon: "fa-shield-halved", color: "var(--app-primary)" },
     { q: "How do I correct a transaction?", a: "Open Transaction History, delete the incorrect record, then add it again.", icon: "fa-pen-to-square", color: "var(--app-warning)" },
     { q: "Can I export my data?", a: "PDF and CSV export options are planned for a future update.", icon: "fa-file-export", color: "#8b5cf6" },
   ];
+
+  const updateField = (field, value) => {
+    setError("");
+    setMessage("");
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const submitSupportRequest = async (e) => {
+    e.preventDefault();
+    const subject = form.subject.trim();
+    const requestMessage = form.message.trim();
+
+    if (!subject || !requestMessage) {
+      setError("Add both a subject and message before sending.");
+      return;
+    }
+
+    setSending(true);
+    setError("");
+    setMessage("");
+
+    try {
+      await supportAPI.create({ subject, message: requestMessage });
+      setForm({ subject: "", message: "" });
+      setMessage("Your query was submitted successfully. The support team can now review it.");
+    } catch (err) {
+      setError(err.message || "Could not submit your query. Please try again.");
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <div className="theme-page mt-4 mb-5 pb-4">
@@ -49,19 +87,49 @@ export default function Support() {
           <div className="theme-card p-3 p-md-4 h-100">
             <div className="mb-3">
               <p className="fw-semibold mb-0" style={{ fontSize: 14 }}>Contact us</p>
-              <small className="text-secondary">Share an issue, request, or account question.</small>
+              <small className="text-secondary">Share an issue, request, or account question with the support team.</small>
             </div>
 
-            <form className="d-flex flex-column gap-3">
+            <div className="theme-card-muted p-3 mb-3">
+              <div className="d-flex align-items-center gap-2">
+                <i className="fa-solid fa-ticket" style={{ color: "var(--app-primary)", fontSize: 13 }} />
+                <span className="fw-semibold" style={{ fontSize: 13 }}>Support ticket</span>
+              </div>
+              <div className="text-secondary mt-2" style={{ fontSize: 12, lineHeight: 1.5 }}>
+                Your query will be saved with your account email so the team can follow up.
+              </div>
+            </div>
+
+            <form className="d-flex flex-column gap-3" onSubmit={submitSupportRequest}>
               <div>
                 <label className="text-secondary mb-2" style={{ fontSize: 11, fontWeight: 700 }}>SUBJECT</label>
-                <input type="text" className="form-control theme-input py-3" placeholder="What is this about?" />
+                <input
+                  type="text"
+                  className="form-control theme-input py-3"
+                  placeholder="What is this about?"
+                  value={form.subject}
+                  onChange={(e) => updateField("subject", e.target.value)}
+                  maxLength="120"
+                  disabled={sending}
+                />
               </div>
               <div>
                 <label className="text-secondary mb-2" style={{ fontSize: 11, fontWeight: 700 }}>MESSAGE</label>
-                <textarea className="form-control theme-input py-3" rows="5" placeholder="How can we help?" />
+                <textarea
+                  className="form-control theme-input py-3"
+                  rows="5"
+                  placeholder="How can we help?"
+                  value={form.message}
+                  onChange={(e) => updateField("message", e.target.value)}
+                  maxLength="2000"
+                  disabled={sending}
+                />
               </div>
-              <button className="btn btn-primary fw-semibold py-3" style={{ borderRadius: 8, fontSize: 14 }}>Send Message</button>
+              {error && <div className="rounded-3 py-2 px-3" style={{ background: "rgba(239,68,68,.12)", color: "var(--app-danger)", fontSize: 13 }}>{error}</div>}
+              {message && <div className="rounded-3 py-2 px-3" style={{ background: "rgba(16,185,129,.12)", color: "var(--app-success)", fontSize: 13 }}>{message}</div>}
+              <button type="submit" disabled={sending} className="btn btn-primary fw-semibold py-3" style={{ borderRadius: 8, fontSize: 14 }}>
+                {sending ? <ButtonSpinner label="Submitting..." /> : "Submit Query"}
+              </button>
             </form>
           </div>
         </div>

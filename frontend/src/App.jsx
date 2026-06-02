@@ -12,10 +12,12 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Support from "./pages/Support";
 import Auth from "./pages/Auth";
+import AdminPanel from "./pages/AdminPanel";
 import { ExpenseProvider } from "./context/expenseContext";
 import AIAssistant from "./components/AIAssistant";
 import useExpense from "./context/expenseContext";
 import { ToastProvider } from "./components/ToastProvider";
+import AdminRoute from "./components/AdminRoute";
 
 // ─── Private Route Guard ───────────────────────────────
 // Redirects to /login if the user is not authenticated
@@ -64,6 +66,7 @@ function AppRoutes() {
           <Route path="transactions" element={<Transactions />} />
           <Route path="settings" element={<Settings />} />
           <Route path="support" element={<Support />} />
+          <Route path="admin" element={<AdminRoute><AdminPanel/></AdminRoute>} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

@@ -57,3 +57,18 @@ export const userAPI = {
   changeEmail:    (body) => request("/user/email",    { method: "PUT", body: JSON.stringify(body) }),
   changePassword: (body) => request("/user/password", { method: "PUT", body: JSON.stringify(body) }),
 };
+
+// â”€â”€â”€ Support â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export const supportAPI = {
+  create: (body) => request("/support", { method: "POST", body: JSON.stringify(body) }),
+};
+
+// ─── Admin ───────────────────────────────────────────
+export const adminAPI = {
+  getStats: () => request("/admin/stats"),
+  getUsers: () => request('/admin/users'),
+  getSupportRequests: () => request('/admin/support'),
+  updateSupportStatus: (id, body) => request(`/admin/support/${id}/status`, { method: "PATCH", body: JSON.stringify(body) }),
+  updateUserAdmin: (id, body) => request(`/admin/users/${id}/admin`, { method: "PATCH", body: JSON.stringify(body) }),
+  deleteUser: (id) => request(`/admin/users/${id}`, { method: "DELETE" }),
+};

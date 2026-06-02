@@ -150,6 +150,13 @@ const SideMenu = () => {
             {!collapsed && <span>Settings</span>}
           </NavLink>
 
+          {user?.isAdmin && (
+            <NavLink to="/admin" className="menu-link" onClick={closeMobileMenu}>
+              <i className="fa-solid fa-shield-halved"></i>
+              {!collapsed && <span>Admin</span>}
+            </NavLink>
+          )}
+
           <NavLink to="/support" className="menu-link" onClick={closeMobileMenu}>
             <i className="fa-solid fa-phone"></i>
             {!collapsed && <span>Support</span>}
