@@ -12,6 +12,7 @@ const supportRoutes = require("./routes/support.routes");
 const adminRoutes = require("./routes/admin.routes");
 const { protect } = require("./middleware/authMiddleware");
 const admin = require("./middleware/adminMiddleware");
+const { initCronJobs } = require("./utils/cronJobs");
 
 const app = express();
 
@@ -106,6 +107,7 @@ mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
     console.log("✅ MongoDB connected");
+    initCronJobs();
     app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
   })
   .catch((err) => {

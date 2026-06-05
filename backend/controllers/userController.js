@@ -8,12 +8,9 @@ const userPayload = (user) => ({
   name: user.name,
   email: user.email,
   avatar: user.avatar,
-  occupation: user.occupation,
   monthlyIncome: user.monthlyIncome,
   monthlyBudget: user.monthlyBudget,
   savingsGoal: user.savingsGoal,
-  preferredCurrency: user.preferredCurrency,
-  spendingFocus: user.spendingFocus,
 });
 
 const optionalAmount = (value, label) => {
@@ -32,12 +29,9 @@ const updateProfile = async (req, res) => {
     const {
       name,
       avatar,
-      occupation,
       monthlyIncome,
       monthlyBudget,
       savingsGoal,
-      preferredCurrency,
-      spendingFocus,
     } = req.body;
     const updates = {};
     if (name !== undefined) {
@@ -54,9 +48,6 @@ const updateProfile = async (req, res) => {
       }
       updates.avatar = avatar;
     }
-    if (occupation !== undefined) updates.occupation = occupation.trim();
-    if (spendingFocus !== undefined) updates.spendingFocus = spendingFocus.trim();
-    if (preferredCurrency !== undefined) updates.preferredCurrency = preferredCurrency;
 
     const parsedMonthlyIncome = optionalAmount(monthlyIncome, "Monthly income");
     const parsedMonthlyBudget = optionalAmount(monthlyBudget, "Monthly budget");

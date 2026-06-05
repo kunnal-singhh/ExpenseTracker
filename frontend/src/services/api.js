@@ -29,7 +29,9 @@ async function request(endpoint, options = {}) {
 
   if (!res.ok) {
     console.error(data || `${res.status} ${res.statusText}`);
-    throw new Error(data?.message || "Request failed");
+    const err = new Error(data?.message || "Request failed");
+    err.data = data;
+    throw err;
   }
 
   return data;
@@ -39,6 +41,7 @@ async function request(endpoint, options = {}) {
 export const authAPI = {
   register: (body) => request("/auth/register", { method: "POST", body: JSON.stringify(body) }),
   login:    (body) => request("/auth/login",    { method: "POST", body: JSON.stringify(body) }),
+  verify:   (body) => request("/auth/verify",   { method: "POST", body: JSON.stringify(body) }),
   getMe:    ()     => request("/auth/me"),
 };
 
@@ -61,6 +64,7 @@ export const userAPI = {
 // â”€â”€â”€ Support â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const supportAPI = {
   create: (body) => request("/support", { method: "POST", body: JSON.stringify(body) }),
+  getAll: () => request("/support"),
 };
 
 // ─── Admin ───────────────────────────────────────────

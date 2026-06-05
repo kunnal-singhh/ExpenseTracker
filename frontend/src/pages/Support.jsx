@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { supportAPI } from "../services/api";
 import { ButtonSpinner } from "../components/UiStates";
 
@@ -7,6 +7,24 @@ export default function Support() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [myRequests, setMyRequests] = useState([]);
+  const [loadingRequests, setLoadingRequests] = useState(true);
+
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        const data = await supportAPI.getAll();
+        if (data && data.requests) {
+          setMyRequests(data.requests);
+        }
+      } catch (err) {
+        console.error("Failed to fetch support requests", err);
+      } finally {
+        setLoadingRequests(false);
+      }
+    };
+    fetchRequests();
+  }, []);
 
   const faqs = [
     { q: "Is my data safe?", a: "Yes, your transactions stay tied to your private account.", icon: "fa-shield-halved", color: "var(--app-primary)" },
@@ -35,9 +53,12 @@ export default function Support() {
     setMessage("");
 
     try {
-      await supportAPI.create({ subject, message: requestMessage });
+      const res = await supportAPI.create({ subject, message: requestMessage });
       setForm({ subject: "", message: "" });
       setMessage("Your query was submitted successfully. The support team can now review it.");
+      if (res && res.supportRequest) {
+        setMyRequests(prev => [res.supportRequest, ...prev]);
+      }
     } catch (err) {
       setError(err.message || "Could not submit your query. Please try again.");
     } finally {
@@ -131,6 +152,39 @@ export default function Support() {
                 {sending ? <ButtonSpinner label="Submitting..." /> : "Submit Query"}
               </button>
             </form>
+          </div>
+        </div>
+      </div>
+
+      {/* My Queries Section */}
+      <div className="row g-3 mt-1">
+        <div className="col-12">
+          <div className="theme-card p-3 p-md-4">
+            <div className="mb-3">
+              <p className="fw-semibold mb-0" style={{ fontSize: 14 }}>My Queries</p>
+              <small className="text-secondary">Track the status of your submitted support tickets.</small>
+            </div>
+            
+            {loadingRequests ? (
+              <div className="text-secondary" style={{ fontSize: 13 }}>Loading queries...</div>
+            ) : myRequests.length === 0 ? (
+              <div className="text-secondary" style={{ fontSize: 13 }}>You haven't submitted any queries yet.</div>
+            ) : (
+              <div className="d-flex flex-column gap-3">
+                {myRequests.map((req) => (
+                  <div key={req._id} className="theme-card-muted p-3">
+                    <div className="d-flex align-items-center justify-content-between mb-2">
+                      <div className="fw-semibold" style={{ fontSize: 14 }}>{req.subject}</div>
+                      <span className={`badge ${req.status === 'open' ? 'bg-primary' : req.status === 'in_progress' ? 'bg-warning text-dark' : 'bg-success'}`}>
+                        {req.status === 'open' ? 'Submitted' : req.status === 'in_progress' ? 'In Progress' : req.status.charAt(0).toUpperCase() + req.status.slice(1)}
+                      </span>
+                    </div>
+                    <div className="text-secondary mb-2" style={{ fontSize: 13, whiteSpace: 'pre-wrap' }}>{req.message}</div>
+                    <div className="text-secondary" style={{ fontSize: 11 }}>Submitted on {new Date(req.createdAt).toLocaleDateString()}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

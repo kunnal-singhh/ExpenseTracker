@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import useExpense from "../context/expenseContext";
 import { adminAPI } from "../services/api";
 import { SkeletonLine } from "../components/UiStates";
+import { useToast } from "../components/useToast";
 
 const SUPPORT_STATUSES = ["open", "in_progress", "resolved"];
 
@@ -44,14 +45,12 @@ export default function AdminPanel() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState("");
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
   const [userSearch, setUserSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const loadAdminData = async () => {
-    setError("");
     const [statsData, userData, supportData] = await Promise.all([
       adminAPI.getStats(),
       adminAPI.getUsers(),
@@ -77,7 +76,7 @@ export default function AdminPanel() {
           return;
         }
 
-        setError(err.message || "Could not load admin data.");
+        showToast(err.message || "Could not load admin data.", "danger");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -105,18 +104,16 @@ export default function AdminPanel() {
 
   const refreshAfterAction = async (successMessage) => {
     await loadAdminData();
-    setNotice(successMessage);
-    setTimeout(() => setNotice(""), 2400);
+    showToast(successMessage, "success");
   };
 
   const changeSupportStatus = async (requestId, status) => {
     setSavingId(`support-${requestId}`);
-    setError("");
     try {
       await adminAPI.updateSupportStatus(requestId, { status });
       await refreshAfterAction("Support ticket updated.");
     } catch (err) {
-      setError(err.message || "Could not update support ticket.");
+      showToast(err.message || "Could not update support ticket.", "danger");
     } finally {
       setSavingId("");
     }
@@ -125,12 +122,11 @@ export default function AdminPanel() {
   const toggleAdmin = async (targetUser) => {
     const nextAdmin = !targetUser.isAdmin;
     setSavingId(`user-${targetUser._id}`);
-    setError("");
     try {
       await adminAPI.updateUserAdmin(targetUser._id, { isAdmin: nextAdmin });
       await refreshAfterAction(nextAdmin ? "Admin access granted." : "Admin access removed.");
     } catch (err) {
-      setError(err.message || "Could not update admin access.");
+      showToast(err.message || "Could not update admin access.", "danger");
     } finally {
       setSavingId("");
     }
@@ -141,12 +137,11 @@ export default function AdminPanel() {
     if (!ok) return;
 
     setSavingId(`delete-${targetUser._id}`);
-    setError("");
     try {
       await adminAPI.deleteUser(targetUser._id);
       await refreshAfterAction("User deleted.");
     } catch (err) {
-      setError(err.message || "Could not delete user.");
+      showToast(err.message || "Could not delete user.", "danger");
     } finally {
       setSavingId("");
     }
@@ -182,9 +177,6 @@ export default function AdminPanel() {
         </button>
       </div>
 
-      {error && <div className="rounded-3 py-2 px-3 mb-3" style={{ background: "rgba(239,68,68,.12)", color: "var(--app-danger)", fontSize: 13 }}>{error}</div>}
-      {notice && <div className="rounded-3 py-2 px-3 mb-3" style={{ background: "rgba(16,185,129,.12)", color: "var(--app-success)", fontSize: 13 }}>{notice}</div>}
-
       <div className="row g-3 mb-3">
         <div className="col-6 col-xl-3"><StatCard icon="fa-users" label="Users" value={stats?.totalUsers || 0} /></div>
         <div className="col-6 col-xl-3"><StatCard icon="fa-headset" label="Open Tickets" value={stats?.support?.open || 0} tone="warning" /></div>
@@ -218,11 +210,17 @@ export default function AdminPanel() {
                         {item.isAdmin && <span className="badge" style={{ background: "rgba(59,130,246,.14)", color: "var(--app-primary)" }}>Admin</span>}
                       </div>
                       <div className="d-flex gap-2 flex-wrap">
-                        <button type="button" className="btn theme-chip fw-semibold px-3 py-2" disabled={isSelf || savingId === `user-${item._id}`} style={{ borderRadius: 8, fontSize: 12 }} onClick={() => toggleAdmin(item)}>
-                          {item.isAdmin ? "Remove Admin" : "Make Admin"}
+                        <button type="button" className="btn theme-chip fw-semibold px-3 py-2" disabled={isSelf || savingId === `user-${item._id}`} style={{ borderRadius: 8, fontSize: 12, minWidth: 120 }} onClick={() => toggleAdmin(item)}>
+                          {savingId === `user-${item._id}` ? (
+                            <><i className="fa-solid fa-spinner fa-spin me-2" />Wait...</>
+                          ) : item.isAdmin ? (
+                            "Remove Admin"
+                          ) : (
+                            "Make Admin"
+                          )}
                         </button>
-                        <button type="button" className="btn fw-semibold px-3 py-2" disabled={isSelf || savingId === `delete-${item._id}`} style={{ borderRadius: 8, fontSize: 12, color: "var(--app-danger)", background: "rgba(239,68,68,.10)", border: "1px solid rgba(239,68,68,.18)" }} onClick={() => removeUser(item)}>
-                          Delete
+                        <button type="button" className="btn fw-semibold px-3 py-2" disabled={isSelf || savingId === `delete-${item._id}`} style={{ borderRadius: 8, fontSize: 12, color: "var(--app-danger)", background: "rgba(239,68,68,.10)", border: "1px solid rgba(239,68,68,.18)", minWidth: 80 }} onClick={() => removeUser(item)}>
+                          {savingId === `delete-${item._id}` ? <i className="fa-solid fa-spinner fa-spin" /> : "Delete"}
                         </button>
                       </div>
                     </li>

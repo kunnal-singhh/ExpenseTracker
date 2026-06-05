@@ -175,28 +175,19 @@ const Dashboard = () => {
     };
   }, [expenses]);
 
-  const heatmapData = useMemo(() => {
-    const totals = {};
-    expenses.forEach((transaction) => {
-      const date = parseTransactionDate(transaction);
-      totals[dayKey(date)] = (totals[dayKey(date)] || 0) + Math.abs(transaction.amount);
+  const currentMonthStats = useMemo(() => {
+    const now = new Date();
+    let cmIncome = 0;
+    let cmExpense = 0;
+    transactions.forEach(t => {
+      const d = parseTransactionDate(t);
+      if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
+        if (t.amount > 0) cmIncome += t.amount;
+        else cmExpense += Math.abs(t.amount);
+      }
     });
-
-    const cells = [];
-    const today = new Date();
-    for (let i = 34; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      const value = totals[dayKey(date)] || 0;
-      cells.push({
-        key: dayKey(date),
-        label: `${date.getDate()} ${MONTHS[date.getMonth()]}`,
-        value,
-      });
-    }
-    const max = Math.max(...cells.map((cell) => cell.value), 1);
-    return cells.map((cell) => ({ ...cell, intensity: cell.value / max }));
-  }, [expenses]);
+    return { income: cmIncome, expense: cmExpense, net: cmIncome - cmExpense };
+  }, [transactions]);
 
   const pieData = useMemo(() => {
     const map = {};
@@ -209,14 +200,16 @@ const Dashboard = () => {
       .map(([name, value]) => ({ name, value }));
   }, [transactions]);
 
-  const savingsRate = income > 0 ? Math.round(((income - Math.abs(expense)) / income) * 100) : 0;
+  const savingsRate = currentMonthStats.income > 0 
+    ? Math.round((currentMonthStats.net / currentMonthStats.income) * 100) 
+    : 0;
   const recent = transactions;
 
   const stats = [
     { label: "Total income", value: fmt(income), color: "var(--app-success)", icon: "fa-circle-arrow-down", bg: "rgba(16,185,129,.12)" },
     { label: "Total expense", value: fmt(expense), color: "var(--app-danger)", icon: "fa-circle-arrow-up", bg: "rgba(239,68,68,.12)" },
     { label: "Net balance", value: fmt(balance), color: balance >= 0 ? "var(--app-success)" : "var(--app-danger)", icon: "fa-wallet", bg: "rgba(59,130,246,.12)" },
-    { label: "Savings rate", value: `${savingsRate}%`, color: "var(--app-warning)", icon: "fa-piggy-bank", bg: "rgba(245,158,11,.12)" },
+    { label: "Monthly savings rate", value: `${savingsRate}%`, color: "var(--app-warning)", icon: "fa-piggy-bank", bg: "rgba(245,158,11,.12)" },
   ];
   const hasTransactions = transactions.length > 0;
   const hasExpenses = expenses.length > 0;
@@ -298,35 +291,24 @@ const Dashboard = () => {
           <ChartSkeleton height={240} />
         ) : hasTransactionGraphData ? (
           <ResponsiveContainer width="100%" height={240}>
-            {graphView === "yearly" ? (
-              <BarChart data={transactionGraphData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--app-border-soft)" vertical={false} />
-                <XAxis dataKey="label" tick={{ fill: "#7b8794", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: "#7b8794", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => (v >= 1000 ? `\u20b9${Math.round(v / 1000)}k` : `\u20b9${v}`)} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="income" name="Income" fill="#10b981" radius={[5, 5, 0, 0]} />
-                <Bar dataKey="expense" name="Expense" fill="#ef4444" radius={[5, 5, 0, 0]} />
-              </BarChart>
-            ) : (
-              <AreaChart data={transactionGraphData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="dashboardTransactionIncomeGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="dashboardTransactionExpenseGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.28} />
-                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--app-border-soft)" />
-                <XAxis dataKey="label" tick={{ fill: "#7b8794", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: "#7b8794", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => (v >= 1000 ? `\u20b9${Math.round(v / 1000)}k` : `\u20b9${v}`)} />
-                <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="income" name="Income" stroke="#10b981" strokeWidth={2} fill="url(#dashboardTransactionIncomeGrad)" />
-                <Area type="monotone" dataKey="expense" name="Expense" stroke="#ef4444" strokeWidth={2} fill="url(#dashboardTransactionExpenseGrad)" />
-              </AreaChart>
-            )}
+            <AreaChart data={transactionGraphData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+              <defs>
+                <linearGradient id="dashboardTransactionIncomeGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="dashboardTransactionExpenseGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.28} />
+                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--app-border-soft)" />
+              <XAxis dataKey="label" tick={{ fill: "var(--app-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: "var(--app-muted)", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => (v >= 1000 ? `\u20b9${Math.round(v / 1000)}k` : `\u20b9${v}`)} />
+              <Tooltip content={<CustomTooltip />} />
+              <Area type="monotone" dataKey="income" name="Income" stroke="#10b981" strokeWidth={2} fill="url(#dashboardTransactionIncomeGrad)" activeDot={{ r: 5, fill: "#10b981", stroke: "var(--app-surface)", strokeWidth: 2 }} />
+              <Area type="monotone" dataKey="expense" name="Expense" stroke="#ef4444" strokeWidth={2} fill="url(#dashboardTransactionExpenseGrad)" activeDot={{ r: 5, fill: "#ef4444", stroke: "var(--app-surface)", strokeWidth: 2 }} />
+            </AreaChart>
           </ResponsiveContainer>
         ) : (
           <EmptyState icon="fa-chart-column" title="No graph data yet" message="Add transactions to see daily, weekly, monthly, and yearly activity." />
@@ -341,42 +323,110 @@ const Dashboard = () => {
               <small className="text-secondary">Last 7 days</small>
             </div>
             {transactionsLoading ? <ChartSkeleton height={190} /> : <ResponsiveContainer width="100%" height={190}>
-              <BarChart data={dailyData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+              <BarChart data={dailyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorDailySpendBar" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
+                    <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.6} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--app-border-soft)" vertical={false} />
-                <XAxis dataKey="day" tick={{ fill: "#7b8794", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: "#7b8794", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => (v >= 1000 ? `\u20b9${v / 1000}k` : `\u20b9${v}`)} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="spent" name="Spent" fill="#3b82f6" radius={[5, 5, 0, 0]} />
+                <XAxis dataKey="day" tick={{ fill: "var(--app-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "var(--app-muted)", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => (v >= 1000 ? `\u20b9${v / 1000}k` : `\u20b9${v}`)} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: "var(--app-surface-3)" }} />
+                <Bar dataKey="spent" name="Spent" fill="url(#colorDailySpendBar)" radius={[6, 6, 0, 0]} maxBarSize={40} />
               </BarChart>
             </ResponsiveContainer>}
           </div>
         </div>
 
         <div className="col-12 col-lg-5">
-          <div className="theme-card p-3 p-md-4 h-100">
-            <div className="mb-3">
-              <p className="fw-semibold mb-0" style={{ fontSize: 14 }}>Spending heatmap</p>
-              <small className="text-secondary">Last 35 days</small>
+          <div className="theme-card p-3 p-md-4 h-100 d-flex flex-column">
+            <div className="mb-4">
+              <p className="fw-semibold mb-0" style={{ fontSize: 14 }}>Financial Goals</p>
+              <small className="text-secondary">Current month progress</small>
             </div>
-            {transactionsLoading ? <ChartSkeleton height={170} /> : hasExpenses ? (
-              <>
-                <div className="spending-heatmap" aria-label="Spending heatmap">
-                  {heatmapData.map((cell) => (
-                    <div
-                      key={cell.key}
-                      className="heatmap-cell"
-                      title={`${cell.label}: ${fmt(cell.value)}`}
-                      style={{ "--heat-bg": `rgba(59, 130, 246, ${0.16 + cell.intensity * 0.72})` }}
-                    />
-                  ))}
-                </div>
-                <div className="d-flex justify-content-between text-secondary mt-3" style={{ fontSize: 11 }}>
-                  <span>Lower spend</span>
-                  <span>Higher spend</span>
-                </div>
-              </>
+            {transactionsLoading ? (
+               <ChartSkeleton height={170} />
             ) : (
-              <EmptyState icon="fa-table-cells" title="No heatmap yet" message="Expense entries will light up your spending calendar." />
+              <div className="row g-3 flex-grow-1 align-items-center mt-1 pb-2">
+                <div className="col-6 d-flex flex-column align-items-center">
+                  <div className="fw-medium mb-3" style={{ fontSize: 13, color: "var(--app-text)" }}>Monthly Budget</div>
+                  {user?.monthlyBudget ? (() => {
+                    const spent = currentMonthStats.expense;
+                    const limit = user.monthlyBudget;
+                    const pct = Math.min(100, Math.round((spent / limit) * 100));
+                    const color = pct >= 100 ? "var(--app-danger)" : pct > 75 ? "var(--app-warning)" : "var(--app-success)";
+                    const data = [
+                      { name: "Spent", value: spent },
+                      { name: "Remaining", value: Math.max(0, limit - spent) }
+                    ];
+                    return (
+                      <div className="position-relative d-flex flex-column align-items-center">
+                        <div style={{ width: 120, height: 120 }}>
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie data={data} innerRadius={42} outerRadius={56} dataKey="value" startAngle={90} endAngle={-270} stroke="none" isAnimationActive={false}>
+                                <Cell fill={color} />
+                                <Cell fill="var(--app-surface-3)" />
+                              </Pie>
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <div className="position-absolute d-flex flex-column align-items-center justify-content-center" style={{ top: 0, left: 0, width: 120, height: 120, pointerEvents: "none" }}>
+                          <span className="fw-bold" style={{ fontSize: 18, color }}>{pct}%</span>
+                          <span className="text-secondary fw-medium" style={{ fontSize: 10 }}>Spent</span>
+                        </div>
+                        <div className="text-center mt-3">
+                          <div className="fw-semibold" style={{ fontSize: 13, color: "var(--app-text)" }}>{fmt(spent)} <span className="fw-normal text-secondary" style={{ fontSize: 11 }}>/ {fmt(limit)}</span></div>
+                        </div>
+                      </div>
+                    );
+                  })() : (
+                    <div className="d-flex flex-column align-items-center justify-content-center text-center" style={{ height: 120, width: 120, borderRadius: "50%", border: "4px solid var(--app-surface-3)" }}>
+                       <div className="text-secondary" style={{ fontSize: 12 }}>Not set</div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="col-6 d-flex flex-column align-items-center">
+                  <div className="fw-medium mb-3" style={{ fontSize: 13, color: "var(--app-text)" }}>Savings Goal</div>
+                  {user?.savingsGoal ? (() => {
+                    const saved = Math.max(0, currentMonthStats.net);
+                    const limit = user.savingsGoal;
+                    const pct = Math.min(100, Math.round((saved / limit) * 100));
+                    const data = [
+                      { name: "Saved", value: saved },
+                      { name: "Remaining", value: Math.max(0, limit - saved) }
+                    ];
+                    return (
+                      <div className="position-relative d-flex flex-column align-items-center">
+                        <div style={{ width: 120, height: 120 }}>
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie data={data} innerRadius={42} outerRadius={56} dataKey="value" startAngle={90} endAngle={-270} stroke="none" isAnimationActive={false}>
+                                <Cell fill="var(--app-primary)" />
+                                <Cell fill="var(--app-surface-3)" />
+                              </Pie>
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <div className="position-absolute d-flex flex-column align-items-center justify-content-center" style={{ top: 0, left: 0, width: 120, height: 120, pointerEvents: "none" }}>
+                          <span className="fw-bold" style={{ fontSize: 18, color: "var(--app-primary)" }}>{pct}%</span>
+                          <span className="text-secondary fw-medium" style={{ fontSize: 10 }}>Saved</span>
+                        </div>
+                        <div className="text-center mt-3">
+                          <div className="fw-semibold" style={{ fontSize: 13, color: "var(--app-text)" }}>{fmt(saved)} <span className="fw-normal text-secondary" style={{ fontSize: 11 }}>/ {fmt(limit)}</span></div>
+                        </div>
+                      </div>
+                    );
+                  })() : (
+                    <div className="d-flex flex-column align-items-center justify-content-center text-center" style={{ height: 120, width: 120, borderRadius: "50%", border: "4px solid var(--app-surface-3)" }}>
+                       <div className="text-secondary" style={{ fontSize: 12 }}>Not set</div>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </div>

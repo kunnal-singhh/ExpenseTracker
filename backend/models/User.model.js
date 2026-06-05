@@ -27,16 +27,24 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    verificationCode: {
+      type: String,
+      select: false, // hidden by default
+    },
+    verificationCodeExpires: {
+      type: Date,
+      select: false,
+      index: { expires: 0 } // TTL index: automatically delete document when this date is reached
+    },
     isAdmin: {
       type: Boolean,
       default: false,
     },
-    occupation: {
-      type: String,
-      trim: true,
-      maxlength: [80, "Occupation cannot exceed 80 characters"],
-      default: "",
-    },
+
     monthlyIncome: {
       type: Number,
       min: [0, "Monthly income cannot be negative"],
@@ -46,6 +54,10 @@ const userSchema = new mongoose.Schema(
       type: Number,
       min: [0, "Monthly budget cannot be negative"],
       default: null,
+    },
+    budgetAlertSentForPeriod: {
+      type: Boolean,
+      default: false,
     },
     savingsGoal: {
       type: Number,
@@ -57,12 +69,7 @@ const userSchema = new mongoose.Schema(
       enum: ["INR", "USD", "EUR", "GBP"],
       default: "INR",
     },
-    spendingFocus: {
-      type: String,
-      trim: true,
-      maxlength: [80, "Spending focus cannot exceed 80 characters"],
-      default: "",
-    },
+
   },
   { timestamps: true }
 );

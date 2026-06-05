@@ -32,4 +32,13 @@ const createSupportRequest = async (req, res) => {
   }
 };
 
-module.exports = { createSupportRequest };
+const getUserSupportRequests = async (req, res) => {
+  try {
+    const requests = await SupportRequest.find({ user: req.user._id }).sort({ createdAt: -1 });
+    res.status(200).json({ success: true, requests });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { createSupportRequest, getUserSupportRequests };

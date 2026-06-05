@@ -255,6 +255,9 @@ const createTransaction = async (req, res) => {
       return res.status(400).json({ success: false, message: "to and a non-zero amount are required" });
     }
 
+    /* 
+    // Removed hard balance check so users can track expenses normally 
+    // and rely on the soft budget alert instead.
     if (Number(amount) < 0) {
       const result = await Transaction.aggregate([
         { $match: { user: new mongoose.Types.ObjectId(req.user._id) } },
@@ -269,6 +272,7 @@ const createTransaction = async (req, res) => {
         return res.status(400).json({ success: false, message: "Expense exceeds available balance." });
       }
     }
+    */
 
     const resolvedCategory = Number(amount) < 0
       ? await resolveTransactionCategory(to, category, "expense")
@@ -283,6 +287,45 @@ const createTransaction = async (req, res) => {
       date: now.toLocaleDateString(),
       time: now.toLocaleTimeString(),
     });
+
+    // --- BUDGET ALERT LOGIC ---
+    if (Number(amount) < 0) {
+      const userDoc = await mongoose.model("User").findById(req.user._id);
+      if (userDoc && userDoc.monthlyBudget > 0 && !userDoc.budgetAlertSentForPeriod) {
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1);
+        startOfMonth.setHours(0, 0, 0, 0);
+
+        const expenseResult = await Transaction.aggregate([
+          { 
+            $match: { 
+              user: new mongoose.Types.ObjectId(req.user._id),
+              amount: { $lt: 0 },
+              createdAt: { $gte: startOfMonth }
+            } 
+          },
+          { $group: { _id: null, total: { $sum: "$amount" } } }
+        ]);
+        
+        // Sum will be negative, so we take absolute value
+        const totalExpensesThisMonth = Math.abs(expenseResult[0]?.total || 0);
+
+        if (totalExpensesThisMonth > userDoc.monthlyBudget) {
+          const { sendBudgetAlertEmail } = require("../utils/emailService");
+          const sent = await sendBudgetAlertEmail(
+            userDoc.email, 
+            userDoc.name, 
+            userDoc.monthlyBudget, 
+            totalExpensesThisMonth
+          );
+          if (sent) {
+            userDoc.budgetAlertSentForPeriod = true;
+            await userDoc.save();
+          }
+        }
+      }
+    }
+    // --------------------------
 
     res.status(201).json({ success: true, transaction });
   } catch (err) {

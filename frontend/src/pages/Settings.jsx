@@ -4,7 +4,6 @@ import { useToast } from "../components/useToast";
 import { ButtonSpinner } from "../components/UiStates";
 
 const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
-const CURRENCIES = ["INR", "USD", "EUR", "GBP"];
 const isGoogleEmail = (email = "") => /^[^\s@]+@(gmail\.com|googlemail\.com)$/i.test(email.trim());
 
 const applyTheme = (theme) => {
@@ -81,7 +80,6 @@ export default function Settings() {
     monthlyIncome: user?.monthlyIncome || "",
     monthlyBudget: user?.monthlyBudget || "",
     savingsGoal: user?.savingsGoal || "",
-    preferredCurrency: user?.preferredCurrency || "INR",
     spendingFocus: user?.spendingFocus || "",
   });
   const [email, setEmail] = useState(user?.email || "");
@@ -104,12 +102,11 @@ export default function Settings() {
     String(profile.monthlyIncome || "") !== String(user?.monthlyIncome || "") ||
     String(profile.monthlyBudget || "") !== String(user?.monthlyBudget || "") ||
     String(profile.savingsGoal || "") !== String(user?.savingsGoal || "") ||
-    profile.preferredCurrency !== (user?.preferredCurrency || "INR") ||
     profile.spendingFocus.trim() !== (user?.spendingFocus || "");
   const hasEmailChanges = email.trim().toLowerCase() !== (user?.email || "").toLowerCase();
   const summaryName = profile.name.trim() || user?.name || "User";
   const summaryEmail = email.trim() || user?.email || "";
-  const summaryCurrency = profile.preferredCurrency || user?.preferredCurrency || "INR";
+  const summaryCurrency = "INR";
   const profileCompletion = [
     summaryName && summaryName !== "User",
     profile.avatar || user?.avatar,
@@ -134,7 +131,6 @@ export default function Settings() {
       monthlyIncome: user?.monthlyIncome || "",
       monthlyBudget: user?.monthlyBudget || "",
       savingsGoal: user?.savingsGoal || "",
-      preferredCurrency: user?.preferredCurrency || "INR",
       spendingFocus: user?.spendingFocus || "",
     });
     setEmail(user?.email || "");
@@ -179,7 +175,6 @@ export default function Settings() {
         monthlyIncome: profile.monthlyIncome,
         monthlyBudget: profile.monthlyBudget,
         savingsGoal: profile.savingsGoal,
-        preferredCurrency: profile.preferredCurrency,
         spendingFocus: profile.spendingFocus.trim(),
       };
       await updateProfile(nextProfile);
@@ -280,24 +275,11 @@ export default function Settings() {
               </div>
 
               <div className="row g-3">
-                <div className="col-12 col-md-6">
+                <div className="col-12">
                   <label className="text-secondary mb-2" style={{ fontSize: 11, fontWeight: 700 }}>DISPLAY NAME</label>
                   <input className="form-control theme-input py-3" value={profile.name} onChange={(e) => updateProfileField("name", e.target.value)} placeholder="Your name" maxLength={50} />
                 </div>
-                <div className="col-12 col-md-6">
-                  <label className="text-secondary mb-2" style={{ fontSize: 11, fontWeight: 700 }}>OCCUPATION</label>
-                  <input className="form-control theme-input py-3" value={profile.occupation} onChange={(e) => updateProfileField("occupation", e.target.value)} placeholder="e.g. Software Engineer" maxLength={80} />
-                </div>
-                <div className="col-12 col-md-6">
-                  <label className="text-secondary mb-2" style={{ fontSize: 11, fontWeight: 700 }}>PREFERRED CURRENCY</label>
-                  <select className="form-select theme-select py-3" value={profile.preferredCurrency} onChange={(e) => updateProfileField("preferredCurrency", e.target.value)}>
-                    {CURRENCIES.map((currency) => <option key={currency} value={currency}>{currency}</option>)}
-                  </select>
-                </div>
-                <div className="col-12 col-md-6">
-                  <label className="text-secondary mb-2" style={{ fontSize: 11, fontWeight: 700 }}>SPENDING FOCUS</label>
-                  <input className="form-control theme-input py-3" value={profile.spendingFocus} onChange={(e) => updateProfileField("spendingFocus", e.target.value)} placeholder="e.g. Groceries, travel" maxLength={80} />
-                </div>
+
                 <div className="col-12 col-md-4">
                   <label className="text-secondary mb-2" style={{ fontSize: 11, fontWeight: 700 }}>MONTHLY INCOME</label>
                   <input type="number" min="0" className="form-control theme-input py-3" value={profile.monthlyIncome} onChange={(e) => updateProfileField("monthlyIncome", e.target.value)} placeholder="0" />
@@ -403,11 +385,9 @@ export default function Settings() {
               <div className="text-secondary text-truncate" style={{ fontSize: 12 }}>{summaryEmail || "Add Google email"}</div>
             </div>
 
-            <SummaryItem icon="fa-briefcase" label="Occupation" value={profile.occupation || user?.occupation} fallback="Add occupation" />
             <SummaryItem icon="fa-money-bill-trend-up" label="Monthly income" value={fmtMoney(profile.monthlyIncome || user?.monthlyIncome, summaryCurrency)} fallback="Add income" />
             <SummaryItem icon="fa-chart-pie" label="Monthly budget" value={fmtMoney(profile.monthlyBudget || user?.monthlyBudget, summaryCurrency)} fallback="Add budget" />
             <SummaryItem icon="fa-bullseye" label="Savings goal" value={fmtMoney(profile.savingsGoal || user?.savingsGoal, summaryCurrency)} fallback="Add savings goal" />
-            <SummaryItem icon="fa-layer-group" label="Spending focus" value={profile.spendingFocus || user?.spendingFocus} fallback="Add focus area" />
 
             <div className="theme-card-muted p-3">
               <div className="d-flex align-items-center justify-content-between mb-2">
