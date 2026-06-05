@@ -50,14 +50,19 @@ const userSchema = new mongoose.Schema(
       min: [0, "Monthly income cannot be negative"],
       default: null,
     },
-    monthlyBudget: {
+    budgetAmount: {
       type: Number,
-      min: [0, "Monthly budget cannot be negative"],
+      min: [0, "Budget amount cannot be negative"],
       default: null,
     },
-    budgetAlertSentForPeriod: {
-      type: Boolean,
-      default: false,
+    budgetPeriod: {
+      type: String,
+      enum: ["daily", "weekly", "monthly", "yearly"],
+      default: "monthly",
+    },
+    lastBudgetAlertDate: {
+      type: Date,
+      default: null,
     },
     savingsGoal: {
       type: Number,

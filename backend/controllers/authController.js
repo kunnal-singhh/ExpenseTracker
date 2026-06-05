@@ -18,7 +18,8 @@ const userPayload = (user) => ({
   email: user.email,
   avatar: user.avatar,
   monthlyIncome: user.monthlyIncome,
-  monthlyBudget: user.monthlyBudget,
+  budgetAmount: user.budgetAmount,
+  budgetPeriod: user.budgetPeriod,
   savingsGoal: user.savingsGoal,
   isAdmin: !!user.isAdmin,
 });

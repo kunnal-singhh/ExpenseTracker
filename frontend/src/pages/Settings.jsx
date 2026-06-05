@@ -76,11 +76,10 @@ export default function Settings() {
   const [profile, setProfile] = useState({
     name: user?.name || "",
     avatar: user?.avatar || "",
-    occupation: user?.occupation || "",
     monthlyIncome: user?.monthlyIncome || "",
-    monthlyBudget: user?.monthlyBudget || "",
+    budgetAmount: user?.budgetAmount || "",
+    budgetPeriod: user?.budgetPeriod || "monthly",
     savingsGoal: user?.savingsGoal || "",
-    spendingFocus: user?.spendingFocus || "",
   });
   const [email, setEmail] = useState(user?.email || "");
   const [passwords, setPasswords] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
@@ -98,11 +97,10 @@ export default function Settings() {
   const hasProfileChanges =
     profile.name.trim() !== (user?.name || "") ||
     profile.avatar !== (user?.avatar || "") ||
-    profile.occupation.trim() !== (user?.occupation || "") ||
     String(profile.monthlyIncome || "") !== String(user?.monthlyIncome || "") ||
-    String(profile.monthlyBudget || "") !== String(user?.monthlyBudget || "") ||
-    String(profile.savingsGoal || "") !== String(user?.savingsGoal || "") ||
-    profile.spendingFocus.trim() !== (user?.spendingFocus || "");
+    String(profile.budgetAmount || "") !== String(user?.budgetAmount || "") ||
+    profile.budgetPeriod !== (user?.budgetPeriod || "monthly") ||
+    String(profile.savingsGoal || "") !== String(user?.savingsGoal || "");
   const hasEmailChanges = email.trim().toLowerCase() !== (user?.email || "").toLowerCase();
   const summaryName = profile.name.trim() || user?.name || "User";
   const summaryEmail = email.trim() || user?.email || "";
@@ -111,13 +109,11 @@ export default function Settings() {
     summaryName && summaryName !== "User",
     profile.avatar || user?.avatar,
     summaryEmail,
-    profile.occupation || user?.occupation,
     profile.monthlyIncome || user?.monthlyIncome,
-    profile.monthlyBudget || user?.monthlyBudget,
+    profile.budgetAmount || user?.budgetAmount,
     profile.savingsGoal || user?.savingsGoal,
-    profile.spendingFocus || user?.spendingFocus,
   ].filter(Boolean).length;
-  const profileCompletionPercent = Math.round((profileCompletion / 8) * 100);
+  const profileCompletionPercent = Math.round((profileCompletion / 6) * 100);
 
   useEffect(() => {
     applyTheme(theme);
@@ -127,11 +123,10 @@ export default function Settings() {
     setProfile({
       name: user?.name || "",
       avatar: user?.avatar || "",
-      occupation: user?.occupation || "",
       monthlyIncome: user?.monthlyIncome || "",
-      monthlyBudget: user?.monthlyBudget || "",
+      budgetAmount: user?.budgetAmount || "",
+      budgetPeriod: user?.budgetPeriod || "monthly",
       savingsGoal: user?.savingsGoal || "",
-      spendingFocus: user?.spendingFocus || "",
     });
     setEmail(user?.email || "");
   }, [user]);
@@ -171,11 +166,10 @@ export default function Settings() {
       const nextProfile = {
         name: profile.name.trim(),
         avatar: profile.avatar,
-        occupation: profile.occupation.trim(),
         monthlyIncome: profile.monthlyIncome,
-        monthlyBudget: profile.monthlyBudget,
+        budgetAmount: profile.budgetAmount,
+        budgetPeriod: profile.budgetPeriod,
         savingsGoal: profile.savingsGoal,
-        spendingFocus: profile.spendingFocus.trim(),
       };
       await updateProfile(nextProfile);
       setProfile(nextProfile);
@@ -285,8 +279,17 @@ export default function Settings() {
                   <input type="number" min="0" className="form-control theme-input py-3" value={profile.monthlyIncome} onChange={(e) => updateProfileField("monthlyIncome", e.target.value)} placeholder="0" />
                 </div>
                 <div className="col-12 col-md-4">
-                  <label className="text-secondary mb-2" style={{ fontSize: 11, fontWeight: 700 }}>MONTHLY BUDGET</label>
-                  <input type="number" min="0" className="form-control theme-input py-3" value={profile.monthlyBudget} onChange={(e) => updateProfileField("monthlyBudget", e.target.value)} placeholder="0" />
+                  <label className="text-secondary mb-2" style={{ fontSize: 11, fontWeight: 700 }}>BUDGET PERIOD</label>
+                  <select className="form-select theme-input py-3" value={profile.budgetPeriod} onChange={(e) => updateProfileField("budgetPeriod", e.target.value)}>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                  </select>
+                </div>
+                <div className="col-12 col-md-4">
+                  <label className="text-secondary mb-2" style={{ fontSize: 11, fontWeight: 700 }}>BUDGET AMOUNT</label>
+                  <input type="number" min="0" className="form-control theme-input py-3" value={profile.budgetAmount} onChange={(e) => updateProfileField("budgetAmount", e.target.value)} placeholder="0" />
                 </div>
                 <div className="col-12 col-md-4">
                   <label className="text-secondary mb-2" style={{ fontSize: 11, fontWeight: 700 }}>SAVINGS GOAL</label>
@@ -386,7 +389,7 @@ export default function Settings() {
             </div>
 
             <SummaryItem icon="fa-money-bill-trend-up" label="Monthly income" value={fmtMoney(profile.monthlyIncome || user?.monthlyIncome, summaryCurrency)} fallback="Add income" />
-            <SummaryItem icon="fa-chart-pie" label="Monthly budget" value={fmtMoney(profile.monthlyBudget || user?.monthlyBudget, summaryCurrency)} fallback="Add budget" />
+            <SummaryItem icon="fa-chart-pie" label={`Budget (${profile.budgetPeriod || user?.budgetPeriod || "monthly"})`} value={fmtMoney(profile.budgetAmount || user?.budgetAmount, summaryCurrency)} fallback="Add budget" />
             <SummaryItem icon="fa-bullseye" label="Savings goal" value={fmtMoney(profile.savingsGoal || user?.savingsGoal, summaryCurrency)} fallback="Add savings goal" />
 
             <div className="theme-card-muted p-3">

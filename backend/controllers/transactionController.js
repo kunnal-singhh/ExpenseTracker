@@ -291,36 +291,70 @@ const createTransaction = async (req, res) => {
     // --- BUDGET ALERT LOGIC ---
     if (Number(amount) < 0) {
       const userDoc = await mongoose.model("User").findById(req.user._id);
-      if (userDoc && userDoc.monthlyBudget > 0 && !userDoc.budgetAlertSentForPeriod) {
-        const startOfMonth = new Date();
-        startOfMonth.setDate(1);
-        startOfMonth.setHours(0, 0, 0, 0);
+      if (userDoc && userDoc.budgetAmount > 0) {
+        const now = new Date();
+        let startDate = new Date(now);
+        let endDate = new Date(now);
 
-        const expenseResult = await Transaction.aggregate([
-          { 
-            $match: { 
-              user: new mongoose.Types.ObjectId(req.user._id),
-              amount: { $lt: 0 },
-              createdAt: { $gte: startOfMonth }
-            } 
-          },
-          { $group: { _id: null, total: { $sum: "$amount" } } }
-        ]);
-        
-        // Sum will be negative, so we take absolute value
-        const totalExpensesThisMonth = Math.abs(expenseResult[0]?.total || 0);
+        if (userDoc.budgetPeriod === "daily") {
+          startDate.setHours(0, 0, 0, 0);
+          endDate.setHours(23, 59, 59, 999);
+        } else if (userDoc.budgetPeriod === "weekly") {
+          const day = startDate.getDay();
+          const diff = startDate.getDate() - day + (day === 0 ? -6 : 1); // Monday as first day
+          startDate.setDate(diff);
+          startDate.setHours(0, 0, 0, 0);
+          endDate = new Date(startDate);
+          endDate.setDate(endDate.getDate() + 6);
+          endDate.setHours(23, 59, 59, 999);
+        } else if (userDoc.budgetPeriod === "yearly") {
+          startDate.setMonth(0, 1);
+          startDate.setHours(0, 0, 0, 0);
+          endDate.setMonth(11, 31);
+          endDate.setHours(23, 59, 59, 999);
+        } else { // monthly (default)
+          startDate.setDate(1);
+          startDate.setHours(0, 0, 0, 0);
+          endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+          endDate.setHours(23, 59, 59, 999);
+        }
 
-        if (totalExpensesThisMonth > userDoc.monthlyBudget) {
-          const { sendBudgetAlertEmail } = require("../utils/emailService");
-          const sent = await sendBudgetAlertEmail(
-            userDoc.email, 
-            userDoc.name, 
-            userDoc.monthlyBudget, 
-            totalExpensesThisMonth
-          );
-          if (sent) {
-            userDoc.budgetAlertSentForPeriod = true;
-            await userDoc.save();
+        // Check if an alert was already sent in this specific period
+        let alreadySentThisPeriod = false;
+        if (userDoc.lastBudgetAlertDate) {
+          const lastAlert = new Date(userDoc.lastBudgetAlertDate);
+          if (lastAlert >= startDate && lastAlert <= endDate) {
+            alreadySentThisPeriod = true;
+          }
+        }
+
+        if (!alreadySentThisPeriod) {
+          const expenseResult = await Transaction.aggregate([
+            { 
+              $match: { 
+                user: new mongoose.Types.ObjectId(req.user._id),
+                amount: { $lt: 0 },
+                createdAt: { $gte: startDate, $lte: endDate }
+              } 
+            },
+            { $group: { _id: null, total: { $sum: "$amount" } } }
+          ]);
+          
+          const totalExpensesThisPeriod = Math.abs(expenseResult[0]?.total || 0);
+
+          if (totalExpensesThisPeriod > userDoc.budgetAmount) {
+            const { sendBudgetAlertEmail } = require("../utils/emailService");
+            const sent = await sendBudgetAlertEmail(
+              userDoc.email, 
+              userDoc.name, 
+              userDoc.budgetAmount, 
+              totalExpensesThisPeriod,
+              userDoc.budgetPeriod
+            );
+            if (sent) {
+              userDoc.lastBudgetAlertDate = new Date();
+              await userDoc.save();
+            }
           }
         }
       }

@@ -9,7 +9,8 @@ const userPayload = (user) => ({
   email: user.email,
   avatar: user.avatar,
   monthlyIncome: user.monthlyIncome,
-  monthlyBudget: user.monthlyBudget,
+  budgetAmount: user.budgetAmount,
+  budgetPeriod: user.budgetPeriod,
   savingsGoal: user.savingsGoal,
 });
 
@@ -30,7 +31,8 @@ const updateProfile = async (req, res) => {
       name,
       avatar,
       monthlyIncome,
-      monthlyBudget,
+      budgetAmount,
+      budgetPeriod,
       savingsGoal,
     } = req.body;
     const updates = {};
@@ -50,10 +52,16 @@ const updateProfile = async (req, res) => {
     }
 
     const parsedMonthlyIncome = optionalAmount(monthlyIncome, "Monthly income");
-    const parsedMonthlyBudget = optionalAmount(monthlyBudget, "Monthly budget");
+    const parsedBudgetAmount = optionalAmount(budgetAmount, "Budget amount");
     const parsedSavingsGoal = optionalAmount(savingsGoal, "Savings goal");
     if (parsedMonthlyIncome !== undefined) updates.monthlyIncome = parsedMonthlyIncome;
-    if (parsedMonthlyBudget !== undefined) updates.monthlyBudget = parsedMonthlyBudget;
+    if (parsedBudgetAmount !== undefined) updates.budgetAmount = parsedBudgetAmount;
+    if (budgetPeriod !== undefined) {
+      if (!["daily", "weekly", "monthly", "yearly"].includes(budgetPeriod)) {
+        return res.status(400).json({ success: false, message: "Invalid budget period" });
+      }
+      updates.budgetPeriod = budgetPeriod;
+    }
     if (parsedSavingsGoal !== undefined) updates.savingsGoal = parsedSavingsGoal;
 
     const user = await User.findByIdAndUpdate(req.user._id, updates, {

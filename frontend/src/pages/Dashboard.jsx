@@ -189,6 +189,45 @@ const Dashboard = () => {
     return { income: cmIncome, expense: cmExpense, net: cmIncome - cmExpense };
   }, [transactions]);
 
+  const currentPeriodStats = useMemo(() => {
+    const period = user?.budgetPeriod || "monthly";
+    const now = new Date();
+    let startDate = new Date(now);
+    let endDate = new Date(now);
+
+    if (period === "daily") {
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(23, 59, 59, 999);
+    } else if (period === "weekly") {
+      const day = startDate.getDay();
+      const diff = startDate.getDate() - day + (day === 0 ? -6 : 1);
+      startDate.setDate(diff);
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + 6);
+      endDate.setHours(23, 59, 59, 999);
+    } else if (period === "yearly") {
+      startDate.setMonth(0, 1);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setMonth(11, 31);
+      endDate.setHours(23, 59, 59, 999);
+    } else { // monthly
+      startDate.setDate(1);
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+      endDate.setHours(23, 59, 59, 999);
+    }
+
+    let pExpense = 0;
+    transactions.forEach(t => {
+      const d = parseTransactionDate(t);
+      if (d >= startDate && d <= endDate && t.amount < 0) {
+        pExpense += Math.abs(t.amount);
+      }
+    });
+    return { expense: pExpense };
+  }, [transactions, user?.budgetPeriod]);
+
   const pieData = useMemo(() => {
     const map = {};
     transactions.filter((t) => t.amount < 0).forEach((t) => {
@@ -344,17 +383,17 @@ const Dashboard = () => {
           <div className="theme-card p-3 p-md-4 h-100 d-flex flex-column">
             <div className="mb-4">
               <p className="fw-semibold mb-0" style={{ fontSize: 14 }}>Financial Goals</p>
-              <small className="text-secondary">Current month progress</small>
+              <small className="text-secondary">Progress based on your settings</small>
             </div>
             {transactionsLoading ? (
                <ChartSkeleton height={170} />
             ) : (
               <div className="row g-3 flex-grow-1 align-items-center mt-1 pb-2">
                 <div className="col-6 d-flex flex-column align-items-center">
-                  <div className="fw-medium mb-3" style={{ fontSize: 13, color: "var(--app-text)" }}>Monthly Budget</div>
-                  {user?.monthlyBudget ? (() => {
-                    const spent = currentMonthStats.expense;
-                    const limit = user.monthlyBudget;
+                  <div className="fw-medium mb-3 text-capitalize" style={{ fontSize: 13, color: "var(--app-text)" }}>{user?.budgetPeriod || "Monthly"} Budget</div>
+                  {user?.budgetAmount ? (() => {
+                    const spent = currentPeriodStats.expense;
+                    const limit = user.budgetAmount;
                     const pct = Math.min(100, Math.round((spent / limit) * 100));
                     const color = pct >= 100 ? "var(--app-danger)" : pct > 75 ? "var(--app-warning)" : "var(--app-success)";
                     const data = [

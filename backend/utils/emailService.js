@@ -11,11 +11,14 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const sendBudgetAlertEmail = async (toEmail, userName, budgetAmount, totalExpenses) => {
+const sendBudgetAlertEmail = async (toEmail, userName, budgetAmount, totalExpenses, budgetPeriod = "monthly") => {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     console.warn("Email credentials not set. Skipping budget alert email.");
     return false;
   }
+
+  const periodLabel = budgetPeriod.charAt(0).toUpperCase() + budgetPeriod.slice(1);
+  const timeRemaining = budgetPeriod === "daily" ? "day" : budgetPeriod === "weekly" ? "week" : budgetPeriod === "yearly" ? "year" : "month";
 
   const mailOptions = {
     from: `"Expense Tracker" <${process.env.EMAIL_USER}>`,
@@ -25,12 +28,12 @@ const sendBudgetAlertEmail = async (toEmail, userName, budgetAmount, totalExpens
       <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #ef4444;">Budget Alert!</h2>
         <p>Hi ${userName},</p>
-        <p>This is an automated alert to let you know that you have exceeded your monthly budget.</p>
+        <p>This is an automated alert to let you know that you have exceeded your ${budgetPeriod} budget.</p>
         <div style="background-color: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
-          <p style="margin: 5px 0;"><strong>Your Monthly Budget:</strong> ${budgetAmount}</p>
+          <p style="margin: 5px 0;"><strong>Your ${periodLabel} Budget:</strong> ${budgetAmount}</p>
           <p style="margin: 5px 0; color: #ef4444;"><strong>Current Total Expenses:</strong> ${totalExpenses}</p>
         </div>
-        <p>Consider reviewing your recent transactions to see where you can cut back for the rest of the month.</p>
+        <p>Consider reviewing your recent transactions to see where you can cut back for the rest of the ${timeRemaining}.</p>
         <p>Best,<br>Your Expense Tracker Team</p>
       </div>
     `,
