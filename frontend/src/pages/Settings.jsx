@@ -3,7 +3,7 @@ import useExpense from "../context/expenseContext";
 import { useToast } from "../components/useToast";
 import { ButtonSpinner } from "../components/UiStates";
 
-const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
+
 const isGoogleEmail = (email = "") => /^[^\s@]+@(gmail\.com|googlemail\.com)$/i.test(email.trim());
 
 const applyTheme = (theme) => {
@@ -147,7 +147,6 @@ export default function Settings() {
     setProfileMessage("");
     setProfileError("");
     if (!file.type.startsWith("image/")) return setProfileError("Upload a valid image file.");
-    if (file.size > MAX_PHOTO_SIZE) return setProfileError("Choose an image smaller than 10 MB.");
     try {
       updateProfileField("avatar", await fileToDataUrl(file));
     } catch {
@@ -251,7 +250,7 @@ export default function Settings() {
 
                 <div style={{ flex: 1, minWidth: 220 }}>
                   <p className="fw-semibold mb-1" style={{ fontSize: 14 }}>Profile photo</p>
-                  <small className="text-secondary d-block mb-2">Upload any image type under 10 MB.</small>
+                  <small className="text-secondary d-block mb-2">Upload any image type.</small>
                   <div className="d-flex gap-2 flex-wrap">
                     <label className="btn btn-sm rounded-3 theme-chip mb-0" style={{ cursor: "pointer", fontSize: 12 }}>
                       <i className="fa-solid fa-upload me-2" />

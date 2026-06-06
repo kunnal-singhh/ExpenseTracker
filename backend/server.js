@@ -66,7 +66,7 @@ app.use((req, res, next) => {
 
   return next();
 });
-app.use(express.json({ limit: "15mb" }));
+app.use(express.json({ limit: "10gb" }));
 
 
 // ─── Routes ──────────────────────────────────────────
