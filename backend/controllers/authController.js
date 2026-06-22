@@ -39,11 +39,16 @@ const register = async (req, res) => {
       return res.status(400).json({ success: false, message: "Use a valid Google email address" });
     }
 
+    console.log(`[DEBUG] Attempting to register email: "${email}"`);
+
     // Check if email already exists
     const existing = await User.findOne({ email });
     if (existing) {
+      console.log(`[DEBUG] Registration rejected. Email "${email}" already exists in DB!`);
       return res.status(409).json({ success: false, message: "Email already registered" });
     }
+    
+    console.log(`[DEBUG] Email "${email}" not found in DB. Creating new user...`);
 
     const user = await User.create({ name, email, password });
     
