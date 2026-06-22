@@ -52,7 +52,13 @@ const register = async (req, res) => {
     user.verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
     await user.save();
 
-    await sendVerificationEmail(email, name, otp);
+    const emailSent = await sendVerificationEmail(email, name, otp);
+
+    if (!emailSent) {
+      // Clean up the user if email failed to send
+      await User.findByIdAndDelete(user._id);
+      return res.status(500).json({ success: false, message: "Failed to send verification email. Please check server configuration." });
+    }
 
     res.status(201).json({
       success: true,
@@ -94,7 +100,11 @@ const login = async (req, res) => {
       user.verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000);
       await user.save();
 
-      await sendVerificationEmail(email, user.name, otp);
+      const emailSent = await sendVerificationEmail(email, user.name, otp);
+
+      if (!emailSent) {
+        return res.status(500).json({ success: false, message: "Failed to send verification email. Please check server configuration." });
+      }
 
       return res.status(403).json({
         success: false,
