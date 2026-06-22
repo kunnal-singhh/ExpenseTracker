@@ -1,4 +1,8 @@
 const nodemailer = require("nodemailer");
+const dns = require("dns");
+
+// Force Node.js to prefer IPv4 over IPv6. This fixes the ENETUNREACH error on Render!
+dns.setDefaultResultOrder("ipv4first");
 
 // Create a transporter using environment variables.
 // Use EMAIL_HOST if provided, otherwise default to Gmail service
