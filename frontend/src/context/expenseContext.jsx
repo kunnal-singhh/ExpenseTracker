@@ -71,16 +71,6 @@ export const ExpenseProvider = ({ children }) => {
     setAuthLoading(true);
     try {
       const data = await authAPI.register({ name, email, password });
-      return data;
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const verifyOTP = async (email, code) => {
-    setAuthLoading(true);
-    try {
-      const data = await authAPI.verify({ email, code });
       localStorage.setItem("token", data.token);
       setUser(data.user);
       await fetchTransactions();
@@ -127,7 +117,7 @@ export const ExpenseProvider = ({ children }) => {
   return (
     <ExpenseContext.Provider value={{
       transactions, addTransactions, deleteTransaction,
-      fetchTransactions, user, login, register, verifyOTP, logout,
+      fetchTransactions, user, login, register, logout,
       updateProfile, changeEmail, changePassword,
       loading, authLoading, transactionsLoading, error,
     }}>

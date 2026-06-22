@@ -53,48 +53,4 @@ const sendBudgetAlertEmail = async (toEmail, userName, budgetAmount, totalExpens
   }
 };
 
-const sendVerificationEmail = async (toEmail, userName, code) => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.warn("Email credentials not set. Skipping verification email.");
-    return { success: false, error: "The server is currently not configured to send emails. Please contact support." };
-  }
-
-  const mailOptions = {
-    from: `"Expense Tracker" <${process.env.EMAIL_USER}>`,
-    to: toEmail,
-    subject: "Verify Your Email - Expense Tracker",
-    html: `
-      <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #3b82f6;">Welcome to Expense Tracker!</h2>
-        <p>Hi ${userName},</p>
-        <p>Please use the following 6-digit code to verify your email address. This code will expire in 10 minutes.</p>
-        <div style="background-color: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
-          <h1 style="margin: 0; letter-spacing: 5px; color: #1e293b;">${code}</h1>
-        </div>
-        <p>If you did not request this, please ignore this email.</p>
-        <p>Best,<br>Your Expense Tracker Team</p>
-      </div>
-    `,
-  };
-
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log(`Verification email sent successfully to ${toEmail}`);
-    return { success: true };
-  } catch (error) {
-    console.error("Failed to send verification email:", error);
-    
-    let friendlyError = "We encountered an issue sending the verification email. Please try again later.";
-    if (error.message.includes("Invalid login")) {
-      friendlyError = "The server's email system is experiencing authentication issues.";
-    } else if (error.message.includes("ENOTFOUND") || error.message.includes("ECONNREFUSED")) {
-      friendlyError = "The server could not connect to the email provider.";
-    } else if (error.message.includes("rejected")) {
-      friendlyError = "The email provider rejected our attempt to send the email. Please verify your address.";
-    }
-
-    return { success: false, error: friendlyError };
-  }
-};
-
-module.exports = { sendBudgetAlertEmail, sendVerificationEmail };
+module.exports = { sendBudgetAlertEmail };

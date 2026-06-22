@@ -29,16 +29,7 @@ const userSchema = new mongoose.Schema(
     },
     isVerified: {
       type: Boolean,
-      default: false,
-    },
-    verificationCode: {
-      type: String,
-      select: false, // hidden by default
-    },
-    verificationCodeExpires: {
-      type: Date,
-      select: false,
-      index: { expires: 0 } // TTL index: automatically delete document when this date is reached
+      default: true,
     },
     isAdmin: {
       type: Boolean,
