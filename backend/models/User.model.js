@@ -68,11 +68,7 @@ const userSchema = new mongoose.Schema(
       min: [0, "Savings goal cannot be negative"],
       default: null,
     },
-    preferredCurrency: {
-      type: String,
-      enum: ["INR", "USD", "EUR", "GBP"],
-      default: "INR",
-    },
+
 
   },
   { timestamps: true }
