@@ -52,7 +52,7 @@ const sendBudgetAlertEmail = async (toEmail, userName, budgetAmount, totalExpens
 const sendVerificationEmail = async (toEmail, userName, code) => {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     console.warn("Email credentials not set. Skipping verification email.");
-    return { success: false, error: "Email credentials are not set on the server" };
+    return { success: false, error: "The server is currently not configured to send emails. Please contact support." };
   }
 
   const mailOptions = {
@@ -79,7 +79,17 @@ const sendVerificationEmail = async (toEmail, userName, code) => {
     return { success: true };
   } catch (error) {
     console.error("Failed to send verification email:", error);
-    return { success: false, error: error.message };
+    
+    let friendlyError = "We encountered an issue sending the verification email. Please try again later.";
+    if (error.message.includes("Invalid login")) {
+      friendlyError = "The server's email system is experiencing authentication issues.";
+    } else if (error.message.includes("ENOTFOUND") || error.message.includes("ECONNREFUSED")) {
+      friendlyError = "The server could not connect to the email provider.";
+    } else if (error.message.includes("rejected")) {
+      friendlyError = "The email provider rejected our attempt to send the email. Please verify your address.";
+    }
+
+    return { success: false, error: friendlyError };
   }
 };
 
