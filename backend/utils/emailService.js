@@ -52,7 +52,7 @@ const sendBudgetAlertEmail = async (toEmail, userName, budgetAmount, totalExpens
 const sendVerificationEmail = async (toEmail, userName, code) => {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     console.warn("Email credentials not set. Skipping verification email.");
-    return false;
+    return { success: false, error: "Email credentials are not set on the server" };
   }
 
   const mailOptions = {
@@ -76,10 +76,10 @@ const sendVerificationEmail = async (toEmail, userName, code) => {
   try {
     await transporter.sendMail(mailOptions);
     console.log(`Verification email sent successfully to ${toEmail}`);
-    return true;
+    return { success: true };
   } catch (error) {
     console.error("Failed to send verification email:", error);
-    return false;
+    return { success: false, error: error.message };
   }
 };
 
