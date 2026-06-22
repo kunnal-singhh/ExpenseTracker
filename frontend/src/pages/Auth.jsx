@@ -7,12 +7,12 @@ import { useToast } from "../components/useToast";
 const isGoogleEmail = (email = "") => /^[^\s@]+@(gmail\.com|googlemail\.com)$/i.test(email.trim());
 
 export default function Auth() {
-  const { login, register, authLoading } = useExpense();
+  const { login, register, verifyOTP, authLoading } = useExpense();
   const { showToast } = useToast();
   const navigate = useNavigate();
 
   const [mode, setMode] = useState("login");
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", code: "" });
   const [error, setError] = useState("");
 
   const change = (e) => setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
@@ -20,6 +20,20 @@ export default function Auth() {
   const submit = async (e) => {
     e.preventDefault();
     setError("");
+
+    if (mode === "verify") {
+      if (form.code.trim().length !== 6) {
+        return setError("Please enter the 6-digit code");
+      }
+      try {
+        await verifyOTP(form.email, form.code.trim());
+        showToast("Email verified successfully.", "success");
+        navigate("/");
+      } catch (err) {
+        setError(err.message || "Invalid or expired code");
+      }
+      return;
+    }
 
     if (!isGoogleEmail(form.email)) {
       return setError("Please use a valid Google email address");
@@ -33,11 +47,16 @@ export default function Auth() {
       } else {
         if (!form.name.trim()) return setError("Name is required");
         await register(form.name.trim(), form.email, form.password);
-        showToast("Account created successfully.", "success");
-        navigate("/");
+        showToast("Verification code sent to your email.", "success");
+        setMode("verify");
       }
     } catch (err) {
-      setError(err.message || "Something went wrong");
+      if (err.data && err.data.requiresVerification) {
+        setMode("verify");
+        showToast("Verification code sent to your email.", "success");
+      } else {
+        setError(err.message || "Something went wrong");
+      }
     }
   };
 
@@ -49,10 +68,10 @@ export default function Auth() {
             <i className="fa-solid fa-wallet" />
           </div>
           <h4 className="fw-semibold mb-1">
-            {mode === "login" ? "Welcome back" : "Create account"}
+            {mode === "verify" ? "Verify Email" : mode === "login" ? "Welcome back" : "Create account"}
           </h4>
           <small className="text-secondary">
-            {mode === "login" ? "Log in to your Expense Tracker" : "Start tracking with your Google email"}
+            {mode === "verify" ? "Enter the 6-digit code sent to your email" : mode === "login" ? "Log in to your Expense Tracker" : "Start tracking with your Google email"}
           </small>
         </div>
 
@@ -63,45 +82,54 @@ export default function Auth() {
         )}
 
         <form onSubmit={submit} className="d-flex flex-column gap-3">
-          <>
-            {mode === "register" && (
+          {mode === "verify" ? (
+            <div>
+              <label className="text-secondary mb-2" style={{ fontSize: 11, fontWeight: 700 }}>VERIFICATION CODE</label>
+              <input name="code" type="text" className="form-control theme-input py-3 text-center fs-4 letter-spacing-2" placeholder="000000" maxLength="6" value={form.code} onChange={change} required />
+            </div>
+          ) : (
+            <>
+              {mode === "register" && (
+                <div>
+                  <label className="text-secondary mb-2" style={{ fontSize: 11, fontWeight: 700 }}>NAME</label>
+                  <input name="name" type="text" className="form-control theme-input py-3" placeholder="Your name" value={form.name} onChange={change} required />
+                </div>
+              )}
+
               <div>
-                <label className="text-secondary mb-2" style={{ fontSize: 11, fontWeight: 700 }}>NAME</label>
-                <input name="name" type="text" className="form-control theme-input py-3" placeholder="Your name" value={form.name} onChange={change} required />
+                <label className="text-secondary mb-2" style={{ fontSize: 11, fontWeight: 700 }}>GOOGLE EMAIL</label>
+                <input name="email" type="email" className="form-control theme-input py-3" placeholder="you@gmail.com" value={form.email} onChange={change} required disabled={mode === "verify"} />
+                <small className="text-secondary d-block mt-2" style={{ fontSize: 12 }}>Only Gmail or Googlemail addresses are accepted.</small>
               </div>
-            )}
 
-            <div>
-              <label className="text-secondary mb-2" style={{ fontSize: 11, fontWeight: 700 }}>GOOGLE EMAIL</label>
-              <input name="email" type="email" className="form-control theme-input py-3" placeholder="you@gmail.com" value={form.email} onChange={change} required />
-              <small className="text-secondary d-block mt-2" style={{ fontSize: 12 }}>Only Gmail or Googlemail addresses are accepted.</small>
-            </div>
-
-            <div>
-              <label className="text-secondary mb-2" style={{ fontSize: 11, fontWeight: 700 }}>PASSWORD</label>
-              <input name="password" type="password" className="form-control theme-input py-3" placeholder="Min 6 characters" value={form.password} onChange={change} required />
-            </div>
-          </>
+              <div>
+                <label className="text-secondary mb-2" style={{ fontSize: 11, fontWeight: 700 }}>PASSWORD</label>
+                <input name="password" type="password" className="form-control theme-input py-3" placeholder="Min 6 characters" value={form.password} onChange={change} required />
+              </div>
+            </>
+          )}
 
           <button type="submit" className="btn fw-semibold py-3 w-100 mt-1" disabled={authLoading} style={{ background: "var(--app-primary)", color: "#fff", border: 0, borderRadius: 8 }}>
-            {authLoading ? <ButtonSpinner label="Please wait..." /> : mode === "login" ? "Log In" : "Create Account"}
+            {authLoading ? <ButtonSpinner label="Please wait..." /> : mode === "verify" ? "Verify Code" : mode === "login" ? "Log In" : "Create Account"}
           </button>
         </form>
 
-        <p className="text-center text-secondary mt-3 mb-0" style={{ fontSize: 14 }}>
-          {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}
-          <button
-            type="button"
-            className="btn btn-link p-0"
-            style={{ fontSize: 14, color: "var(--app-primary)" }}
-            onClick={() => {
-              setMode(mode === "login" ? "register" : "login");
-              setError("");
-            }}
-          >
-            {mode === "login" ? "Register" : "Log In"}
-          </button>
-        </p>
+        {mode !== "verify" && (
+          <p className="text-center text-secondary mt-3 mb-0" style={{ fontSize: 14 }}>
+            {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}
+            <button
+              type="button"
+              className="btn btn-link p-0"
+              style={{ fontSize: 14, color: "var(--app-primary)" }}
+              onClick={() => {
+                setMode(mode === "login" ? "register" : "login");
+                setError("");
+              }}
+            >
+              {mode === "login" ? "Register" : "Log In"}
+            </button>
+          </p>
+        )}
       </div>
     </div>
   );

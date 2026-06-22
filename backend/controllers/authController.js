@@ -1,5 +1,8 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User.model");
+const { sendVerificationEmail } = require("../utils/emailService");
+
+const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 // ─── Helper: sign JWT ──────────────────────────────────
 const signToken = (id, isAdmin = false) =>
@@ -27,7 +30,6 @@ const register = async (req, res) => {
     const { name, password } = req.body;
     const email = normalizeEmail(req.body.email);
 
-    // Basic validation
     if (!name || !email || !password) {
       return res.status(400).json({ success: false, message: "All fields are required" });
     }
@@ -36,22 +38,30 @@ const register = async (req, res) => {
       return res.status(400).json({ success: false, message: "Use a valid Google email address" });
     }
 
-    // Check if email already exists
     const existing = await User.findOne({ email });
     if (existing) {
       return res.status(409).json({ success: false, message: "This email address is already registered" });
     }
 
     const user = await User.create({ name, email, password });
-    
-    // Automatically log the user in after registration
-    const token = signToken(user._id, !!user.isAdmin);
+
+    const otp = generateOTP();
+    user.verificationCode = otp;
+    user.verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000);
+    await user.save();
+
+    const emailResult = await sendVerificationEmail(email, name, otp);
+
+    if (!emailResult.success) {
+      await User.findByIdAndDelete(user._id);
+      return res.status(500).json({ success: false, message: emailResult.error });
+    }
 
     res.status(201).json({
       success: true,
-      message: "Account created successfully.",
-      token,
-      user: userPayload(user),
+      message: "Account created successfully. Please check your email for the verification code.",
+      requiresVerification: true,
+      email: user.email,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -72,9 +82,32 @@ const login = async (req, res) => {
       return res.status(400).json({ success: false, message: "Use a valid Google email address" });
     }
 
-    const user = await User.findOne({ email }).select("+password");
+    const user = await User.findOne({ email }).select("+password +verificationCode +verificationCodeExpires");
     if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({ success: false, message: "Invalid email or password" });
+    }
+
+    // Bypass verification for admins
+    const needsVerification = !user.isVerified && !user.isAdmin;
+
+    if (needsVerification) {
+      const otp = generateOTP();
+      user.verificationCode = otp;
+      user.verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000);
+      await user.save();
+
+      const emailResult = await sendVerificationEmail(email, user.name, otp);
+
+      if (!emailResult.success) {
+        return res.status(500).json({ success: false, message: emailResult.error });
+      }
+
+      return res.status(403).json({
+        success: false,
+        message: "Email not verified. A new verification code has been sent.",
+        requiresVerification: true,
+        email: user.email,
+      });
     }
 
     const token = signToken(user._id, !!user.isAdmin);
@@ -98,4 +131,47 @@ const getMe = async (req, res) => {
   });
 };
 
-module.exports = { register, login, getMe };
+// ─── @POST /api/auth/verify ────────────────────────────
+const verifyOTP = async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    if (!email || !code) {
+      return res.status(400).json({ success: false, message: "Email and verification code are required" });
+    }
+
+    const user = await User.findOne({ email: normalizeEmail(email) }).select("+verificationCode +verificationCodeExpires");
+    if (!user) {
+      return res.status(404).json({ success: false, message: "No account found with this email address" });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ success: false, message: "This email is already verified. Please log in." });
+    }
+
+    if (!user.verificationCode || user.verificationCode !== code) {
+      return res.status(400).json({ success: false, message: "The verification code you entered is incorrect" });
+    }
+
+    if (user.verificationCodeExpires < new Date()) {
+      return res.status(400).json({ success: false, message: "Your verification code has expired. Please log in again to get a new one." });
+    }
+
+    user.isVerified = true;
+    user.verificationCode = undefined;
+    user.verificationCodeExpires = undefined;
+    await user.save();
+
+    const token = signToken(user._id, !!user.isAdmin);
+
+    res.json({
+      success: true,
+      message: "Email verified successfully",
+      token,
+      user: userPayload(user),
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { register, login, getMe, verifyOTP };
