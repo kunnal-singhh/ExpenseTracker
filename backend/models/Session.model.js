@@ -23,6 +23,11 @@ const sessionSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    expiresAt: {
+      type: Date,
+      required: [true, "Session expiry is required"],
+      index: { expires: 0 },
+    },
   },
   { timestamps: true }
 );

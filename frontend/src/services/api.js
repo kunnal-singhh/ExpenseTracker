@@ -89,6 +89,10 @@ export const supportAPI = {
 };
 
 // ─── Admin ───────────────────────────────────────────
+export const aiAPI = {
+  chat: (body) => request("/ai/chat", { method: "POST", body: JSON.stringify(body) }),
+};
+
 export const adminAPI = {
   getStats: () => request("/admin/stats"),
   getUsers: () => request('/admin/users'),

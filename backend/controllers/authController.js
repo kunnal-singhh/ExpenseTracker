@@ -5,13 +5,29 @@ const Session = require("../models/Session.model");
 const { sendVerificationEmail } = require("../utils/emailService");
 
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
+const ACCESS_TOKEN_EXPIRES_IN = "15m";
+const REFRESH_TOKEN_EXPIRES_IN = "7d";
+const REFRESH_TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+const refreshCookieOptions = () => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  path: "/",
+  maxAge: REFRESH_TOKEN_MAX_AGE_MS,
+});
+
+const clearRefreshCookieOptions = () => {
+  const { maxAge, ...options } = refreshCookieOptions();
+  return options;
+};
 
 // ─── Helper: Tokens ──────────────────────────────────
 const signAccessToken = (id, isAdmin = false) =>
-  jwt.sign({ id, isAdmin }, process.env.JWT_SECRET, { expiresIn: "15m" });
+  jwt.sign({ id, isAdmin }, process.env.JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRES_IN });
 
 const signRefreshToken = (id) =>
-  jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+  jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRES_IN });
 
 const handleTokens = async (user, req, res) => {
   const refreshToken = signRefreshToken(user._id);
@@ -22,16 +38,12 @@ const handleTokens = async (user, req, res) => {
     refreshTokenHash,
     ip: req.ip || "unknown",
     useAgent: req.headers["user-agent"] || "unknown",
+    expiresAt: new Date(Date.now() + REFRESH_TOKEN_MAX_AGE_MS),
   });
 
   const accessToken = signAccessToken(user._id, !!user.isAdmin);
 
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production", 
-    sameSite: "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+  res.cookie("refreshToken", refreshToken, refreshCookieOptions());
 
   return accessToken;
 };
@@ -209,7 +221,11 @@ const refreshToken = async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const refreshTokenHash = crypto.createHash("sha256").update(token).digest("hex");
     
-    const session = await Session.findOne({ refreshTokenHash, revoked: false });
+    const session = await Session.findOne({
+      refreshTokenHash,
+      revoked: false,
+      expiresAt: { $gt: new Date() },
+    });
     if (!session) return res.status(401).json({ success: false, message: "Invalid refresh token" });
 
     const user = await User.findById(decoded.id);
@@ -219,16 +235,12 @@ const refreshToken = async (req, res) => {
     const newRefreshTokenHash = crypto.createHash("sha256").update(newRefreshToken).digest("hex");
     
     session.refreshTokenHash = newRefreshTokenHash;
+    session.expiresAt = new Date(Date.now() + REFRESH_TOKEN_MAX_AGE_MS);
     await session.save();
 
     const accessToken = signAccessToken(user._id, !!user.isAdmin);
 
-    res.cookie("refreshToken", newRefreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("refreshToken", newRefreshToken, refreshCookieOptions());
 
     res.json({ success: true, message: "Token refreshed", token: accessToken });
   } catch (err) {
@@ -248,7 +260,7 @@ const logout = async (req, res) => {
         await session.save();
       }
     }
-    res.clearCookie("refreshToken");
+    res.clearCookie("refreshToken", clearRefreshCookieOptions());
     res.json({ success: true, message: "Logged out successfully" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -262,7 +274,7 @@ const logoutAllSessions = async (req, res) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       await Session.updateMany({ user: decoded.id }, { revoked: true });
     }
-    res.clearCookie("refreshToken");
+    res.clearCookie("refreshToken", clearRefreshCookieOptions());
     res.json({ success: true, message: "Logged out from all sessions" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

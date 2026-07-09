@@ -11,6 +11,7 @@ const transactionRoutes = require("./routes/transaction.routes");
 const userRoutes = require("./routes/user.routes");
 const supportRoutes = require("./routes/support.routes");
 const adminRoutes = require("./routes/admin.routes");
+const aiRoutes = require("./routes/ai.routes");
 const { protect } = require("./middleware/authMiddleware");
 const admin = require("./middleware/adminMiddleware");
 const { initCronJobs } = require("./utils/cronJobs");
@@ -76,6 +77,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/transactions", transactionRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/support", supportRoutes);
+app.use("/api/ai", aiRoutes);
 app.use('/api/admin', protect, admin, adminRoutes);
 
 // ─── Health Check ─────────────────────────────────────

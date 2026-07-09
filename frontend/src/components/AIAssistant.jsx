@@ -1,26 +1,7 @@
-import { useContext, useEffect, useRef, useState } from "react";
-import { ExpenseContext } from "../context/expenseContext";
-
-function buildSystemPrompt(expenses) {
-  return `You are a smart expense assistant. The user has the following transaction data:
-
-${JSON.stringify(expenses, null, 2)}
-
-Each transaction has:
-- _id: unique MongoDB id
-- to: the name/description of the expense/income
-- amount: number (negative means money spent, positive means money received)
-- date: in MM/DD/YYYY format
-- time: time of the transaction
-- type: "income" or "expense"
-
-Today's date is ${new Date().toLocaleDateString("en-US")}.
-
-Answer questions about these transactions clearly and concisely.`;
-}
+import { useEffect, useRef, useState } from "react";
+import { aiAPI } from "../services/api";
 
 export default function AIAssistant() {
-  const { transactions } = useContext(ExpenseContext);
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
@@ -49,29 +30,14 @@ export default function AIAssistant() {
     const apiMessages = updatedMessages.slice(1).map((m) => ({ role: m.role, content: m.content }));
 
     try {
-      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
-          max_tokens: 1024,
-          messages: [{ role: "system", content: buildSystemPrompt(transactions) }, ...apiMessages],
-        }),
+      const data = await aiAPI.chat({
+        messages: apiMessages,
       });
 
-      const data = await response.json();
-      if (data.error) {
-        setMessages((prev) => [...prev, { role: "assistant", content: `API Error: ${data.error.message}` }]);
-        return;
-      }
-
-      const reply = data.choices?.[0]?.message?.content || "Sorry, I couldn't process that.";
+      const reply = data.reply || "Sorry, I couldn't process that.";
       setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
-    } catch {
-      setMessages((prev) => [...prev, { role: "assistant", content: "Network error. Please try again." }]);
+    } catch (err) {
+      setMessages((prev) => [...prev, { role: "assistant", content: err.message || "Network error. Please try again." }]);
     } finally {
       setLoading(false);
     }

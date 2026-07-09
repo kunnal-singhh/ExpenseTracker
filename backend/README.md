@@ -1,146 +1,107 @@
-# 🧾 Expense Tracker — MERN Backend
+# Expense Tracker Backend
 
-A full REST API backend for the Expense Tracker app. Replaces `localStorage` with MongoDB Atlas + JWT auth.
+REST API for the Expense Tracker app with MongoDB, JWT auth, httpOnly refresh cookies, email verification, transaction categorization, support tickets, admin routes, and the protected AI assistant endpoint.
 
----
+## Setup
 
-## 📁 Project Structure
+Install dependencies:
 
-```
-expense-tracker-backend/
-├── server.js                  ← Entry point
-├── .env.example               ← Copy to .env and fill in values
-├── package.json
-│
-├── models/
-│   ├── User.model.js          ← User schema (bcrypt password hashing)
-│   └── Transaction.model.js   ← Transaction schema
-│
-├── controllers/
-│   ├── auth.controller.js     ← register, login, getMe
-│   ├── transaction.controller.js ← CRUD + summary
-│   └── user.controller.js     ← update profile & password
-│
-├── routes/
-│   ├── auth.routes.js
-│   ├── transaction.routes.js
-│   └── user.routes.js
-│
-├── middleware/
-│   └── auth.middleware.js     ← JWT protect middleware
-│
-└── frontend-src/              ← Drop these into your React src/
-    ├── api.js                 → src/services/api.js
-    └── expenseContext.jsx     → src/context/expenseContext.jsx  (replaces old one)
-```
-
----
-
-## 🚀 Setup & Run
-
-### 1. Install dependencies
 ```bash
-cd expense-tracker-backend
 npm install
 ```
 
-### 2. Configure environment
+Create `.env` from `.env.example`:
+
 ```bash
 cp .env.example .env
 ```
-Edit `.env` and fill in your values:
-```
+
+Required environment variables:
+
+```env
 PORT=5000
-MONGO_URI=mongodb+srv://<user>:<pass>@cluster0.xxxxx.mongodb.net/expense-tracker
-JWT_SECRET=some_long_random_secret_string
+NODE_ENV=development
+MONGO_URI=mongodb+srv://<user>:<password>@<cluster>/<database>?retryWrites=true&w=majority
+JWT_SECRET=replace_with_a_long_random_secret
 CLIENT_URL=http://localhost:5173
 ```
 
-### 3. Start server
-```bash
-# Development (auto-restart on changes)
-npm run dev
+Optional integrations:
 
-# Production
+```env
+GROQ_API_KEY=
+GROQ_MODEL=llama-3.3-70b-versatile
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.5-flash
+BREVO_API_KEY=
+EMAIL_FROM=noreply@expense-tracker.app
+```
+
+Run locally:
+
+```bash
+npm run dev
+```
+
+Run in production:
+
+```bash
 npm start
 ```
 
-Server runs at → `http://localhost:5000`
+## Auth
 
----
+- Access JWT expires in 15 minutes.
+- Refresh JWT expires in 7 days.
+- Refresh token is stored in an `httpOnly` cookie.
+- Refresh token hash and expiry are stored in MongoDB sessions.
+- Frontend stores the access token in memory only, not `localStorage`.
 
-## 📡 API Reference
+## Main Routes
 
-### Auth
-| Method | Endpoint | Body | Auth | Description |
-|--------|----------|------|------|-------------|
-| POST | `/api/auth/register` | `{name, email, password}` | ❌ | Create account |
-| POST | `/api/auth/login` | `{email, password}` | ❌ | Login |
-| GET  | `/api/auth/me` | — | ✅ | Get current user |
+```txt
+POST /api/auth/register
+POST /api/auth/login
+POST /api/auth/verify
+GET  /api/auth/me
+POST /api/auth/refresh
+POST /api/auth/logout
 
-### Transactions
-| Method | Endpoint | Params/Body | Auth | Description |
-|--------|----------|-------------|------|-------------|
-| GET  | `/api/transactions` | `?type=income\|expense&page=1&limit=50` | ✅ | List transactions |
-| POST | `/api/transactions` | `{to, amount}` | ✅ | Add transaction |
-| DELETE | `/api/transactions/:id` | — | ✅ | Delete transaction |
-| GET | `/api/transactions/summary` | — | ✅ | Get balance summary |
+GET    /api/transactions
+POST   /api/transactions
+POST   /api/transactions/categorize
+GET    /api/transactions/summary
+DELETE /api/transactions/:id
 
-### User
-| Method | Endpoint | Body | Auth | Description |
-|--------|----------|------|------|-------------|
-| PUT | `/api/user/profile` | `{name, avatar}` | ✅ | Update profile |
-| PUT | `/api/user/password` | `{currentPassword, newPassword}` | ✅ | Change password |
+PUT /api/user/profile
+PUT /api/user/email
+PUT /api/user/password
 
-> ✅ Auth = send `Authorization: Bearer <token>` header
+POST /api/support
+GET  /api/support
 
----
-
-## ⚛️ Frontend Integration
-
-### Step 1 — Add API URL to your Vite env
-In your React project root, create/edit `.env`:
-```
-VITE_API_URL=http://localhost:5000/api
+POST /api/ai/chat
 ```
 
-### Step 2 — Copy the new frontend files
-```
-frontend-src/api.js           →  src/services/api.js
-frontend-src/expenseContext.jsx → src/context/expenseContext.jsx
-```
+## Deployment
 
-### Step 3 — Create a Login page
-Since the app now needs authentication, create a simple login form that calls:
-```js
-const { login, register } = useExpense();
+Backend:
 
-// Login
-await login(email, password);
+1. Set `NODE_ENV=production`.
+2. Set `MONGO_URI`, `JWT_SECRET`, and `CLIENT_URL`.
+3. Set optional service keys on the backend only: `GROQ_API_KEY`, `GEMINI_API_KEY`, `BREVO_API_KEY`.
+4. Use `npm start` as the start command.
 
-// Register
-await register(name, email, password);
-```
+Frontend:
 
-### Step 4 — Transaction IDs
-MongoDB uses `_id` instead of `id`. If you add delete buttons, use `t._id`.
-The `addTransactions` signature is unchanged: `addTransactions({ to, amount })`.
+1. Set `VITE_API_URL` to the deployed backend API URL ending in `/api`.
+2. Do not put private keys in frontend `VITE_` variables.
+3. For Vercel, `frontend/vercel.json` rewrites routes to `index.html`.
+4. For Netlify, `frontend/public/_redirects` rewrites routes to `index.html`.
 
----
+## Security Notes
 
-## 🌐 Deploy (Render / Railway)
-
-1. Push backend to GitHub
-2. Create a new Web Service on [Render](https://render.com)
-3. Set environment variables in the dashboard
-4. Set `CLIENT_URL` to your deployed frontend URL
-5. Update frontend's `VITE_API_URL` to your backend URL
-
----
-
-## 🔒 Security Notes
-
-- Passwords are hashed with `bcryptjs` (cost factor 12)
-- JWT expires in 7 days by default
-- Each user can only access their own transactions (ownership enforced in DB queries)
-- Balance validation happens server-side — expenses are rejected if they exceed balance
+- Passwords are hashed with `bcryptjs`.
+- Refresh cookies use `SameSite=Lax` locally and `SameSite=None; Secure` in production.
+- Private API keys must stay in backend environment variables.
+- Each user can only access their own data through protected routes.
