@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect } from "react";
-import { transactionAPI, authAPI, userAPI } from "../services/api";
+import { transactionAPI, authAPI, userAPI, setToken } from "../services/api";
 
 export const ExpenseContext = createContext();
 
@@ -27,14 +27,16 @@ export const ExpenseProvider = ({ children }) => {
 
   useEffect(() => {
     const init = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) { setLoading(false); return; }
       try {
-        const data = await authAPI.getMe();
-        setUser(data.user);
-        await fetchTransactions(); // now works fine
+        const refreshData = await authAPI.refreshToken();
+        if (refreshData && refreshData.token) {
+          setToken(refreshData.token);
+          const data = await authAPI.getMe();
+          setUser(data.user);
+          await fetchTransactions();
+        }
       } catch {
-        localStorage.removeItem("token");
+        // Not logged in or refresh failed
       } finally {
         setLoading(false);
       }
@@ -58,7 +60,7 @@ export const ExpenseProvider = ({ children }) => {
     setAuthLoading(true);
     try {
       const data = await authAPI.login({ email, password });
-      localStorage.setItem("token", data.token);
+      setToken(data.token);
       setUser(data.user);
       await fetchTransactions();
       return data;
@@ -81,7 +83,7 @@ export const ExpenseProvider = ({ children }) => {
     setAuthLoading(true);
     try {
       const data = await authAPI.verify({ email, code });
-      localStorage.setItem("token", data.token);
+      setToken(data.token);
       setUser(data.user);
       await fetchTransactions();
       return data;
@@ -90,8 +92,13 @@ export const ExpenseProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem("token");
+  const logout = async () => {
+    try {
+      await authAPI.logout();
+    } catch (e) {
+      console.error("Logout failed:", e);
+    }
+    setToken(null);
     setUser(null);
     setTransactions([]);
   };

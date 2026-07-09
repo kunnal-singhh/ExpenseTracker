@@ -5,8 +5,11 @@ const rawBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 const BASE_URL = rawBaseUrl.replace(/\/$/, "");
 
 // ─── Helper ───────────────────────────────────────────
+let memoryToken = null;
+export const setToken = (t) => { memoryToken = t; };
+
 function getToken() {
-  return localStorage.getItem("token");
+  return memoryToken;
 }
 
 async function request(endpoint, options = {}) {
@@ -19,6 +22,7 @@ async function request(endpoint, options = {}) {
     res = await fetch(`${BASE_URL}${endpoint}`, {
       ...options,
       headers: { ...headers, ...options.headers },
+      credentials: "include",
     });
   } catch {
     throw new Error("Cannot reach backend. Check API URL and CORS settings.");
@@ -26,6 +30,20 @@ async function request(endpoint, options = {}) {
 
   const contentType = res.headers.get("content-type") || "";
   const data = contentType.includes("application/json") ? await res.json() : null;
+
+  if (res.status === 401 && !options._retry && endpoint !== "/auth/refresh") {
+    options._retry = true;
+    try {
+      const refreshData = await authAPI.refreshToken();
+      if (refreshData && refreshData.token) {
+         setToken(refreshData.token);
+         return request(endpoint, options);
+      }
+    } catch(err) {
+      setToken(null);
+      throw new Error("Session expired. Please log in again.");
+    }
+  }
 
   if (!res.ok) {
     console.error(data || `${res.status} ${res.statusText}`);
@@ -43,6 +61,9 @@ export const authAPI = {
   login:    (body) => request("/auth/login",    { method: "POST", body: JSON.stringify(body) }),
   verify:   (body) => request("/auth/verify",   { method: "POST", body: JSON.stringify(body) }),
   getMe:    ()     => request("/auth/me"),
+  refreshToken: () => request("/auth/refresh", { method: "POST" }),
+  logout: () => request("/auth/logout", { method: "POST" }),
+  logoutAll: () => request("/auth/logoutAll", { method: "POST" }),
 };
 
 // ─── Transactions ─────────────────────────────────────

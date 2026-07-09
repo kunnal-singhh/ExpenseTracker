@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const cookieParser = require("cookie-parser");
 
 dotenv.config();
 
@@ -67,6 +68,7 @@ app.use((req, res, next) => {
   return next();
 });
 app.use(express.json({ limit: "10gb" }));
+app.use(cookieParser());
 
 
 // ─── Routes ──────────────────────────────────────────

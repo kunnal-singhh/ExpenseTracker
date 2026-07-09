@@ -1,14 +1,40 @@
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const User = require("../models/User.model");
+const Session = require("../models/Session.model");
 const { sendVerificationEmail } = require("../utils/emailService");
 
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
-// ─── Helper: sign JWT ──────────────────────────────────
-const signToken = (id, isAdmin = false) =>
-  jwt.sign({ id, isAdmin }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || "7d",
+// ─── Helper: Tokens ──────────────────────────────────
+const signAccessToken = (id, isAdmin = false) =>
+  jwt.sign({ id, isAdmin }, process.env.JWT_SECRET, { expiresIn: "15m" });
+
+const signRefreshToken = (id) =>
+  jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+
+const handleTokens = async (user, req, res) => {
+  const refreshToken = signRefreshToken(user._id);
+  const refreshTokenHash = crypto.createHash("sha256").update(refreshToken).digest("hex");
+
+  await Session.create({
+    user: user._id,
+    refreshTokenHash,
+    ip: req.ip || "unknown",
+    useAgent: req.headers["user-agent"] || "unknown",
   });
+
+  const accessToken = signAccessToken(user._id, !!user.isAdmin);
+
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production", 
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  return accessToken;
+};
 
 const normalizeEmail = (email = "") => email.trim().toLowerCase();
 const isGoogleEmail = (email = "") => /^[^\s@]+@(gmail\.com|googlemail\.com)$/i.test(email);
@@ -110,7 +136,7 @@ const login = async (req, res) => {
       });
     }
 
-    const token = signToken(user._id, !!user.isAdmin);
+    const token = await handleTokens(user, req, res);
 
     res.json({
       success: true,
@@ -161,7 +187,7 @@ const verifyOTP = async (req, res) => {
     user.verificationCodeExpires = undefined;
     await user.save();
 
-    const token = signToken(user._id, !!user.isAdmin);
+    const token = await handleTokens(user, req, res);
 
     res.json({
       success: true,
@@ -174,4 +200,73 @@ const verifyOTP = async (req, res) => {
   }
 };
 
-module.exports = { register, login, getMe, verifyOTP };
+// ─── Refresh Token ──────────────────────────────────────
+const refreshToken = async (req, res) => {
+  try {
+    const token = req.cookies.refreshToken;
+    if (!token) return res.status(401).json({ success: false, message: "Refresh token not found" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const refreshTokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    
+    const session = await Session.findOne({ refreshTokenHash, revoked: false });
+    if (!session) return res.status(401).json({ success: false, message: "Invalid refresh token" });
+
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(401).json({ success: false, message: "User not found" });
+
+    const newRefreshToken = signRefreshToken(user._id);
+    const newRefreshTokenHash = crypto.createHash("sha256").update(newRefreshToken).digest("hex");
+    
+    session.refreshTokenHash = newRefreshTokenHash;
+    await session.save();
+
+    const accessToken = signAccessToken(user._id, !!user.isAdmin);
+
+    res.cookie("refreshToken", newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.json({ success: true, message: "Token refreshed", token: accessToken });
+  } catch (err) {
+    res.status(401).json({ success: false, message: "Invalid or expired refresh token" });
+  }
+};
+
+// ─── Logout ───────────────────────────────────────────
+const logout = async (req, res) => {
+  try {
+    const token = req.cookies.refreshToken;
+    if (token) {
+      const refreshTokenHash = crypto.createHash("sha256").update(token).digest("hex");
+      const session = await Session.findOne({ refreshTokenHash, revoked: false });
+      if (session) {
+        session.revoked = true;
+        await session.save();
+      }
+    }
+    res.clearCookie("refreshToken");
+    res.json({ success: true, message: "Logged out successfully" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const logoutAllSessions = async (req, res) => {
+  try {
+    const token = req.cookies.refreshToken;
+    if (token) {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      await Session.updateMany({ user: decoded.id }, { revoked: true });
+    }
+    res.clearCookie("refreshToken");
+    res.json({ success: true, message: "Logged out from all sessions" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { register, login, getMe, verifyOTP, refreshToken, logout, logoutAllSessions };
