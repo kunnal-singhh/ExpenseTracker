@@ -230,7 +230,7 @@ const getTransactions = async (req, res) => {
     const skip = (Number(page) - 1) * Number(limit);
 
     const [transactions, total] = await Promise.all([
-      Transaction.find(filter).sort({ createdAt: -1 }).skip(skip).limit(Number(limit)),
+      Transaction.find(filter).sort({ createdAt: -1 }).skip(skip).limit(Number(limit)).lean(),
       Transaction.countDocuments(filter),
     ]);
 

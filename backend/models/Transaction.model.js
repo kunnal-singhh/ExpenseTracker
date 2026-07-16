@@ -30,8 +30,9 @@ const transactionSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: "Other",
+      index: true,
     },
-    date: { type: String, required: true },
+    date: { type: String, required: true, index: true },
     time: { type: String, required: true },
   },
   { timestamps: true }
