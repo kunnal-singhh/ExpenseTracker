@@ -121,7 +121,10 @@ const login = async (req, res) => {
     }
 
     const user = await User.findOne({ email }).select("+password +verificationCode +verificationCodeExpires");
-    if (!user || !(await user.comparePassword(password))) {
+    if (!user) {
+      return res.status(401).json({ success: false, message: "User does not exist, please register" });
+    }
+    if (!(await user.comparePassword(password))) {
       return res.status(401).json({ success: false, message: "Invalid email or password" });
     }
 

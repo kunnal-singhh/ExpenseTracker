@@ -797,11 +797,20 @@ h1, h2, h3, h4, h5, h6,
   border-color: color-mix(in srgb, var(--app-primary) 60%, var(--app-border));
 }
 
-.dashboard-expense-card,
-.dashboard-recent-card {
+.dashboard-expense-card {
   display: flex;
   flex-direction: column;
   min-height: 360px;
+}
+
+.dashboard-top-expenses-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-recent-card {
+  min-height: 0;
+  overflow: hidden;
 }
 
 .dashboard-expense-legend,
@@ -811,11 +820,15 @@ h1, h2, h3, h4, h5, h6,
 
 .dashboard-recent-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding-right: .25rem;
-  max-height: 330px;
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--app-muted) 42%, transparent) transparent;
+}
+
+.dashboard-recent-item {
+  flex: 1 0 52px;
 }
 
 .dashboard-recent-list::-webkit-scrollbar {
@@ -1406,5 +1419,271 @@ h1, h2, h3, h4, h5, h6,
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: .001ms !important;
+  }
+}
+
+/* MOBILE NAVIGATION OVERRIDES */
+@media screen and (max-width: 768px) {
+  .mobile-nav-toggle {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    z-index: 1000;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .sidebar.collapsed {
+    transform: translateX(-100%) !important;
+    position: absolute;
+    z-index: 1050;
+    width: 0 !important;
+    overflow: hidden;
+    padding: 0 !important;
+    border: none !important;
+    margin: 0 !important;
+    display: none !important;
+  }
+  
+  .sidebar:not(.collapsed) {
+    transform: translateX(0) !important;
+  .content-wrapper {
+    margin-left: 56px;
+    padding-right: 0 !important;
+  }
+
+  .app-shell:has(.sidebar:not(.collapsed)) .content-wrapper {
+    margin-left: 56px;
+  }
+
+  .page-container {
+    width: min(100% - 1rem, 1120px);
+  }
+
+  .theme-page {
+    margin-top: 1rem !important;
+  }
+
+  @media (max-height: 680px) {
+    .collapsed-profile {
+      margin-top: 2.35rem;
+    }
+
+    .collapsed-profile-img {
+      width: 34px;
+      height: 34px;
+      font-size: 12px;
+    }
+
+    .profile-photo-btn.compact {
+      width: 34px;
+      height: 34px;
+    }
+
+    .sidebar.collapsed .profile-area {
+      padding-bottom: .45rem !important;
+    }
+
+    .sidebar.collapsed .menu {
+      gap: .35rem;
+    }
+
+    .sidebar.collapsed .menu a,
+    .sidebar.collapsed .menu button.menu-link {
+      width: 36px;
+      height: 36px;
+      font-size: 15px;
+    }
+
+    .sidebar.collapsed .logo-area {
+      min-height: 112px;
+      padding-top: .25rem !important;
+      padding-bottom: 1rem !important;
+    }
+
+    .sidebar.collapsed .logo {
+      width: 72px;
+    }
+  }
+
+  .theme-card {
+    border-radius: 12px;
+  }
+
+  .transaction-detail-backdrop {
+    align-items: flex-end;
+    padding: .75rem;
+  }
+
+  .profile-photo-backdrop {
+    align-items: center;
+    padding: .75rem;
+  }
+
+  .profile-photo-card {
+    border-radius: 14px;
+  }
+
+  .profile-photo-preview img,
+  .profile-photo-placeholder {
+    width: min(100%, 260px);
+  }
+
+  .transaction-detail-card {
+    max-height: 88vh;
+    border-radius: 14px;
+  }
+
+  .transaction-detail-grid {
+    grid-template-columns: 1fr;
+    gap: .6rem;
+  }
+
+  .transaction-graph-tabs {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .transaction-graph-tabs .theme-chip {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .transaction-amount-card strong {
+    font-size: 21px;
+  }
+
+  .spending-heatmap {
+    max-width: 280px;
+    gap: 5px;
+  }
+
+  .heatmap-cell {
+    border-radius: 4px;
+  }
+
+  .dashboard-expense-card,
+  .dashboard-recent-card {
+    min-height: auto;
+  }
+
+  .dashboard-recent-list {
+    max-height: 320px;
+  }
+
+  .theme-input,
+  .theme-select {
+    min-height: 46px;
+  }
+
+  .toast-stack {
+    top: 10px;
+    right: 10px;
+    width: calc(100vw - 76px);
+  }
+
+  .ai-fab {
+    right: 16px;
+    bottom: 16px;
+  }
+
+  .ai-window {
+    right: 10px;
+    bottom: 86px;
+    width: calc(100vw - 76px);
+  }
+}
+
+@media (min-width: 992px) {
+  .page-container {
+    width: min(100% - 2.5rem, 1120px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .001ms !important;
+  }
+}
+
+/* MOBILE NAVIGATION OVERRIDES (BOTTOM NAV) */
+@media screen and (max-width: 768px) {
+  /* Hide the hamburger button and backdrop since we are using a bottom nav now */
+  .mobile-nav-toggle,
+  .sidebar-backdrop,
+  .profile-area,
+  .logo-area,
+  .toggle-btn {
+    display: none !important;
+  }
+  
+  /* Convert the sidebar into a bottom navigation bar */
+  .sidebar,
+  .sidebar.collapsed,
+  .sidebar:not(.collapsed) {
+    transform: none !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    top: auto !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 65px !important;
+    flex-direction: row !important;
+    justify-content: center !important;
+    align-items: center !important;
+    border-right: none !important;
+    border-top: 1px solid var(--app-border-soft) !important;
+    z-index: 1050 !important;
+    display: flex !important;
+    padding: 0 10px !important;
+  }
+  
+  /* Make the menu horizontal and evenly spaced */
+  .sidebar .menu {
+    flex-direction: row !important;
+    width: 100% !important;
+    justify-content: space-around !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  /* Style the links for bottom nav */
+  .sidebar .menu a.menu-link,
+  .sidebar .menu button.menu-link {
+    width: 100% !important;
+    height: 100% !important;
+    padding: 10px 0 !important;
+    border-radius: 12px !important;
+    margin: 0 !important;
+    justify-content: center !important;
+    flex: 1 1 0 !important;
+  }
+  
+  .sidebar .menu a.menu-link i,
+  .sidebar .menu button.menu-link i {
+    font-size: 20px !important;
+    margin: 0 !important;
+  }
+
+  /* Adjust main content wrapper to make room for bottom nav */
+  .content-wrapper {
+    margin-left: 0 !important;
+    padding-top: 15px !important;
+    padding-bottom: 80px !important; /* Space for the bottom nav */
+  }
+
+  /* Move AI Assistant button UP so it doesn't overlap the bottom nav */
+  .ai-fab {
+    bottom: 80px !important;
   }
 }

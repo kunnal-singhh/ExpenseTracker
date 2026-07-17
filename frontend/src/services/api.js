@@ -31,7 +31,7 @@ async function request(endpoint, options = {}) {
   const contentType = res.headers.get("content-type") || "";
   const data = contentType.includes("application/json") ? await res.json() : null;
 
-  if (res.status === 401 && !options._retry && endpoint !== "/auth/refresh") {
+  if (res.status === 401 && !options._retry && !["/auth/refresh", "/auth/login", "/auth/register"].includes(endpoint)) {
     options._retry = true;
     try {
       const refreshData = await authAPI.refreshToken();
@@ -82,7 +82,7 @@ export const userAPI = {
   changePassword: (body) => request("/user/password", { method: "PUT", body: JSON.stringify(body) }),
 };
 
-// â”€â”€â”€ Support â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Support ──────────────────────────────────────────
 export const supportAPI = {
   create: (body) => request("/support", { method: "POST", body: JSON.stringify(body) }),
   getAll: () => request("/support"),

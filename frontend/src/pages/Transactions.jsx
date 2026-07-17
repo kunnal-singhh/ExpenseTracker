@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import useExpense from "../context/expenseContext";
 import { useToast } from "../components/useToast";
 import { EmptyState, TransactionSkeleton } from "../components/UiStates";
+import { transactionAPI } from "../services/api";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const fmt = (n) => "\u20b9" + Math.abs(n || 0).toLocaleString("en-IN");
 const transactionCategory = (transaction) => transaction.category || transaction.to || "Other";
@@ -14,6 +17,8 @@ const Transactions = () => {
   const [filterType, setFilterType] = useState("all");
   const [deleting, setDeleting] = useState(null);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [exportingCSV, setExportingCSV] = useState(false);
+  const [exportingPDF, setExportingPDF] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -52,6 +57,82 @@ const Transactions = () => {
     }
   };
 
+  const handleExportCSV = () => {
+    setExportingCSV(true);
+    try {
+      const headers = ["Date", "Time", "Type", "Category", "Description", "Amount"];
+      const rows = filteredTransactions.map((t) => {
+        const isIncome = t.amount > 0;
+        const type = isIncome ? "Income" : "Expense";
+        const amount = isIncome ? t.amount : Math.abs(t.amount);
+        const desc = t.to ? `"${String(t.to).replace(/"/g, '""')}"` : '""';
+        
+        const dateVal = t.date || (t.createdAt ? new Date(t.createdAt).toLocaleDateString("en-IN") : "");
+        const timeVal = t.time || (t.createdAt ? new Date(t.createdAt).toLocaleTimeString("en-IN") : "");
+        
+        const safeDate = `"${dateVal}"`;
+        const safeTime = `"${timeVal}"`;
+        const safeType = `"${type}"`;
+        const safeCategory = `"${(t.category || "Other").replace(/"/g, '""')}"`;
+        
+        return [safeDate, safeTime, safeType, safeCategory, desc, amount].join(",");
+      });
+
+      const csvContent = [headers.join(","), ...rows].join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "transactions.csv";
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      a.remove();
+      
+      showToast("CSV exported successfully.", "success");
+    } catch (err) {
+      showToast("Failed to export CSV.", "error");
+    } finally {
+      setExportingCSV(false);
+    }
+  };
+
+  const handleExportPDF = () => {
+    setExportingPDF(true);
+    try {
+      const doc = new jsPDF();
+      doc.text("Transaction History", 14, 15);
+      
+      const tableData = filteredTransactions.map((t) => {
+        const isIncome = t.amount > 0;
+        const type = isIncome ? "Income" : "Expense";
+        const amount = isIncome ? t.amount : Math.abs(t.amount);
+        
+        const dateVal = t.date || (t.createdAt ? new Date(t.createdAt).toLocaleDateString("en-IN") : "");
+        const timeVal = t.time || (t.createdAt ? new Date(t.createdAt).toLocaleTimeString("en-IN") : "");
+        
+        // jsPDF standard fonts don't support the ₹ symbol natively (it renders as 1 or ?). We use 'Rs.' instead.
+        const pdfAmount = "Rs. " + Math.abs(amount || 0).toLocaleString("en-IN");
+        
+        return [dateVal, timeVal, type, t.category || "Other", t.to || "", pdfAmount];
+      });
+
+      autoTable(doc, {
+        head: [["Date", "Time", "Type", "Category", "Description", "Amount"]],
+        body: tableData,
+        startY: 20,
+        theme: 'striped',
+      });
+
+      doc.save("transactions.pdf");
+      showToast("PDF exported successfully.", "success");
+    } catch (err) {
+      showToast("Failed to export PDF.", "error");
+    } finally {
+      setExportingPDF(false);
+    }
+  };
+
   return (
     <div className="theme-page mt-4 mb-5 pb-4">
       <div className="d-flex justify-content-between align-items-start gap-3 mb-4 flex-wrap">
@@ -59,11 +140,38 @@ const Transactions = () => {
           <h4 className="fw-semibold mb-0">Transaction history</h4>
           <small className="text-secondary">Manage, filter, and audit your account activity.</small>
         </div>
-        <select className="form-select theme-select" style={{ width: 160, fontSize: 13 }} value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-          <option value="all">All Activity</option>
-          <option value="income">Income Only</option>
-          <option value="expense">Expenses Only</option>
-        </select>
+        <div className="d-flex gap-2 flex-wrap">
+          <div className="dropdown">
+            <button 
+              className="btn theme-chip border d-flex align-items-center justify-content-center dropdown-toggle" 
+              type="button" 
+              data-bs-toggle="dropdown" 
+              aria-expanded="false" 
+              style={{ fontSize: 13, borderColor: "var(--app-border-soft)", height: "100%" }}
+              disabled={exportingCSV || exportingPDF || filteredTransactions.length === 0}
+            >
+              {(exportingCSV || exportingPDF) ? <span className="spinner-border spinner-border-sm me-2" /> : <i className="fa-solid fa-download me-2" />}
+              Export
+            </button>
+            <ul className="dropdown-menu dropdown-menu-end shadow border" style={{ fontSize: 13, borderColor: "var(--app-border-soft)" }}>
+              <li>
+                <button className="dropdown-item py-2 d-flex align-items-center gap-2" onClick={handleExportCSV}>
+                  <i className="fa-solid fa-file-csv" style={{ width: 16 }}></i> Export as CSV
+                </button>
+              </li>
+              <li>
+                <button className="dropdown-item py-2 d-flex align-items-center gap-2" onClick={handleExportPDF}>
+                  <i className="fa-solid fa-file-pdf text-danger" style={{ width: 16 }}></i> Export as PDF
+                </button>
+              </li>
+            </ul>
+          </div>
+          <select className="form-select theme-select" style={{ width: 160, fontSize: 13 }} value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+            <option value="all">All Activity</option>
+            <option value="income">Income Only</option>
+            <option value="expense">Expenses Only</option>
+          </select>
+        </div>
       </div>
 
       <div className="row g-3 mb-3">

@@ -96,6 +96,18 @@ const SideMenu = () => {
         />
       )}
 
+      {/* Floating hamburger for mobile when collapsed */}
+      {collapsed && (
+        <button
+          type="button"
+          className="btn theme-chip shadow-sm d-md-none mobile-nav-toggle"
+          onClick={() => setCollapsed(false)}
+          aria-label="Open navigation"
+        >
+          <i className="fa-solid fa-bars"></i>
+        </button>
+      )}
+
       <div className={`sidebar d-flex flex-column ${collapsed ? "collapsed" : ""}`}>
         {/* Profile */}
         <div className="profile-area pt-4 text-center pb-4">
@@ -162,15 +174,6 @@ const SideMenu = () => {
             {!collapsed && <span>Support</span>}
           </NavLink>
 
-          {/* Logout */}
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="menu-link btn border-0 text-start mt-2 logout-link"
-          >
-            <i className="fa-solid fa-right-from-bracket"></i>
-            {!collapsed && <span>Logout</span>}
-          </button>
         </div>
 
         {/* Logo */}

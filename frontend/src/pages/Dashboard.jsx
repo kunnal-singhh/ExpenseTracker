@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import useExpense from "../context/expenseContext";
 import { ChartSkeleton, EmptyState, StatCardSkeleton } from "../components/UiStates";
@@ -124,6 +124,26 @@ const buildTransactionGraphData = (transactions, graphView) => {
 const Dashboard = () => {
   const { transactions, user, transactionsLoading } = useExpense();
   const [graphView, setGraphView] = useState("monthly");
+  const topExpensesRef = useRef(null);
+  const [topExpensesHeight, setTopExpensesHeight] = useState(null);
+
+  useLayoutEffect(() => {
+    const card = topExpensesRef.current;
+    if (!card) return undefined;
+
+    const updateHeight = () => {
+      const nextHeight = Math.ceil(card.getBoundingClientRect().height);
+      setTopExpensesHeight((currentHeight) => (
+        currentHeight === nextHeight ? currentHeight : nextHeight
+      ));
+    };
+
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(card);
+
+    return () => observer.disconnect();
+  }, []);
 
   const income = transactions.filter((t) => t.amount > 0).reduce((a, t) => a + t.amount, 0);
   const expense = transactions.filter((t) => t.amount < 0).reduce((a, t) => a + t.amount, 0);
@@ -156,7 +176,7 @@ const Dashboard = () => {
     expenses.forEach((transaction) => {
       const value = Math.abs(transaction.amount);
       const date = parseTransactionDate(transaction);
-      const category = transactionCategory(transaction);
+      const category = transactionCategory(transaction).toLowerCase();
       categoryTotals[category] = (categoryTotals[category] || 0) + value;
       dayTotals[date.getDay()].spent += value;
       dayTotals[date.getDay()].count += 1;
@@ -231,12 +251,15 @@ const Dashboard = () => {
   const pieData = useMemo(() => {
     const map = {};
     transactions.filter((t) => t.amount < 0).forEach((t) => {
-      const category = transactionCategory(t);
-      map[category] = (map[category] || 0) + Math.abs(t.amount);
+      const rawCategory = transactionCategory(t);
+      const key = rawCategory.toLowerCase();
+      if (!map[key]) {
+        map[key] = { name: rawCategory.charAt(0).toUpperCase() + rawCategory.slice(1).toLowerCase(), value: 0 };
+      }
+      map[key].value += Math.abs(t.amount);
     });
-    return Object.entries(map)
-      .sort((a, b) => b[1] - a[1])
-      .map(([name, value]) => ({ name, value }));
+    return Object.values(map)
+      .sort((a, b) => b.value - a.value);
   }, [transactions]);
 
   const savingsRate = currentMonthStats.income > 0 
@@ -527,7 +550,7 @@ const Dashboard = () => {
 
       <div className="row g-3">
         <div className="col-12 col-lg-5">
-          <div className="theme-card p-3 p-md-4 h-100">
+          <div ref={topExpensesRef} className="theme-card dashboard-top-expenses-card p-3 p-md-4">
             <div className="mb-3">
               <p className="fw-semibold mb-0" style={{ fontSize: 14 }}>Top expenses</p>
               <small className="text-secondary">By category</small>
@@ -567,7 +590,10 @@ const Dashboard = () => {
         </div>
 
         <div className="col-12 col-lg-7">
-          <div className="theme-card dashboard-recent-card p-3 p-md-4 h-100">
+          <div
+            className="theme-card dashboard-recent-card p-3 p-md-4 d-flex flex-column"
+            style={topExpensesHeight ? { height: topExpensesHeight } : undefined}
+          >
             <div className="d-flex align-items-center justify-content-between mb-3">
               <p className="fw-semibold mb-0" style={{ fontSize: 14 }}>Recent transactions</p>
               <Link to="/transactions" style={{ fontSize: 12, color: "var(--app-primary)", textDecoration: "none" }}>View all</Link>
@@ -594,11 +620,11 @@ const Dashboard = () => {
                 message="Add a balance or expense entry to start building your history."
               />
             ) : (
-              <div className="dashboard-recent-list d-flex flex-column gap-2">
+              <div className="dashboard-recent-list d-flex flex-column gap-2" style={{ flex: 1 }}>
                 {recent.map((t) => {
                   const isIncome = t.amount > 0;
                   return (
-                    <div key={t._id || t.id} className="theme-card-muted d-flex align-items-center gap-3 px-3 py-2">
+                    <div key={t._id || t.id} className="dashboard-recent-item theme-card-muted d-flex align-items-center gap-3 px-3 py-2">
                       <div className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: 34, height: 34, background: isIncome ? "rgba(16,185,129,.15)" : "rgba(239,68,68,.15)" }}>
                         <i className={`fa-solid ${isIncome ? "fa-circle-arrow-down" : "fa-circle-arrow-up"}`} style={{ color: isIncome ? "var(--app-success)" : "var(--app-danger)", fontSize: 12 }} />
                       </div>
