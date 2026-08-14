@@ -43,7 +43,7 @@ const chatWithGroq = async ({ apiKey, systemPrompt, messages }) => {
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: process.env.GROQ_MODEL || "moonshotai/kimi-k2-instruct",
+      model: process.env.GROQ_MODEL || "openai/gpt-oss-120b",
       max_tokens: 1024,
       messages: [{ role: "system", content: systemPrompt }, ...messages],
     }),
