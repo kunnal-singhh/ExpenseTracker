@@ -74,6 +74,12 @@ const CATEGORY_RULES = [
       "grocery",
       "groceries",
       "snack",
+      "chocolate",
+      "chocolates",
+      "choclate",
+      "candy",
+      "sweet",
+      "sweets",
       "blinkit",
       "zepto",
       "bigbasket",
@@ -151,7 +157,7 @@ const INCOME_RULES = [
 export const detectExpenseCategory = (description = "") => {
   const normalized = description.toLowerCase();
   const match = CATEGORY_RULES.find(({ keywords }) =>
-    keywords.some((keyword) => normalized.includes(keyword))
+    keywords.some((keyword) => matchesKeyword(normalized, keyword))
   );
 
   return match?.category || "Other";
@@ -160,8 +166,13 @@ export const detectExpenseCategory = (description = "") => {
 export const detectIncomeCategory = (description = "") => {
   const normalized = description.toLowerCase();
   const match = INCOME_RULES.find(({ keywords }) =>
-    keywords.some((keyword) => normalized.includes(keyword))
+    keywords.some((keyword) => matchesKeyword(normalized, keyword))
   );
 
   return match?.category || "Other";
+};
+
+const matchesKeyword = (text, keyword) => {
+  const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`\\b${escapedKeyword}\\b`, "i").test(text);
 };

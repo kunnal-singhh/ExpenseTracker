@@ -2,9 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import useExpense from "../context/expenseContext";
 import { useToast } from "../components/useToast";
 import { EmptyState, TransactionSkeleton } from "../components/UiStates";
-import { transactionAPI } from "../services/api";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 
 const fmt = (n) => "\u20b9" + Math.abs(n || 0).toLocaleString("en-IN");
 const transactionCategory = (transaction) => transaction.category || transaction.to || "Other";
@@ -90,16 +87,19 @@ const Transactions = () => {
       a.remove();
       
       showToast("CSV exported successfully.", "success");
-    } catch (err) {
+    } catch {
       showToast("Failed to export CSV.", "error");
     } finally {
       setExportingCSV(false);
     }
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     setExportingPDF(true);
     try {
+      const { default: jsPDF } = await import("jspdf");
+      const { default: autoTable } = await import("jspdf-autotable");
+
       const doc = new jsPDF();
       doc.text("Transaction History", 14, 15);
       
@@ -111,7 +111,6 @@ const Transactions = () => {
         const dateVal = t.date || (t.createdAt ? new Date(t.createdAt).toLocaleDateString("en-IN") : "");
         const timeVal = t.time || (t.createdAt ? new Date(t.createdAt).toLocaleTimeString("en-IN") : "");
         
-        // jsPDF standard fonts don't support the ₹ symbol natively (it renders as 1 or ?). We use 'Rs.' instead.
         const pdfAmount = "Rs. " + Math.abs(amount || 0).toLocaleString("en-IN");
         
         return [dateVal, timeVal, type, t.category || "Other", t.to || "", pdfAmount];
@@ -126,7 +125,7 @@ const Transactions = () => {
 
       doc.save("transactions.pdf");
       showToast("PDF exported successfully.", "success");
-    } catch (err) {
+    } catch {
       showToast("Failed to export PDF.", "error");
     } finally {
       setExportingPDF(false);

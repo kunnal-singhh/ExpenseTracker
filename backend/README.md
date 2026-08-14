@@ -30,7 +30,7 @@ Optional integrations:
 
 ```env
 GROQ_API_KEY=
-GROQ_MODEL=llama-3.3-70b-versatile
+GROQ_MODEL=moonshotai/kimi-k2-instruct
 GEMINI_API_KEY=
 GEMINI_MODEL=gemini-2.5-flash
 BREVO_API_KEY=

@@ -145,9 +145,16 @@ const Dashboard = () => {
     return () => observer.disconnect();
   }, []);
 
-  const income = transactions.filter((t) => t.amount > 0).reduce((a, t) => a + t.amount, 0);
-  const expense = transactions.filter((t) => t.amount < 0).reduce((a, t) => a + t.amount, 0);
-  const balance = income + expense;
+  const { income, expense, balance } = useMemo(() => {
+    let inc = 0;
+    let exp = 0;
+    transactions.forEach((t) => {
+      if (t.amount > 0) inc += t.amount;
+      else exp += t.amount;
+    });
+    return { income: inc, expense: exp, balance: inc + exp };
+  }, [transactions]);
+
   const expenses = useMemo(() => transactions.filter((t) => t.amount < 0), [transactions]);
 
   const dailyData = useMemo(() => {
@@ -165,7 +172,10 @@ const Dashboard = () => {
     return days;
   }, [transactions]);
 
-  const transactionGraphData = buildTransactionGraphData(transactions, graphView);
+  const transactionGraphData = useMemo(
+    () => buildTransactionGraphData(transactions, graphView),
+    [transactions, graphView]
+  );
 
   const smartAnalytics = useMemo(() => {
     const categoryTotals = {};
@@ -250,22 +260,23 @@ const Dashboard = () => {
 
   const pieData = useMemo(() => {
     const map = {};
-    transactions.filter((t) => t.amount < 0).forEach((t) => {
-      const rawCategory = transactionCategory(t);
-      const key = rawCategory.toLowerCase();
+    expenses.forEach((t) => {
+      const c = transactionCategory(t);
+      const key = c.toLowerCase();
       if (!map[key]) {
-        map[key] = { name: rawCategory.charAt(0).toUpperCase() + rawCategory.slice(1).toLowerCase(), value: 0 };
+        map[key] = { name: c.charAt(0).toUpperCase() + c.slice(1).toLowerCase(), value: 0 };
       }
       map[key].value += Math.abs(t.amount);
     });
-    return Object.values(map)
-      .sort((a, b) => b.value - a.value);
-  }, [transactions]);
+    return Object.values(map).sort((a, b) => b.value - a.value);
+  }, [expenses]);
+
+  const hasTransactions = transactions.length > 0;
+  const recent = transactions;
 
   const savingsRate = currentMonthStats.income > 0 
     ? Math.round((currentMonthStats.net / currentMonthStats.income) * 100) 
     : 0;
-  const recent = transactions;
 
   const stats = [
     { label: "Total income", value: fmt(income), color: "var(--app-success)", icon: "fa-circle-arrow-down", bg: "rgba(16,185,129,.12)" },
@@ -273,8 +284,6 @@ const Dashboard = () => {
     { label: "Net balance", value: fmt(balance), color: balance >= 0 ? "var(--app-success)" : "var(--app-danger)", icon: "fa-wallet", bg: "rgba(59,130,246,.12)" },
     { label: "Monthly savings rate", value: `${savingsRate}%`, color: "var(--app-warning)", icon: "fa-piggy-bank", bg: "rgba(245,158,11,.12)" },
   ];
-  const hasTransactions = transactions.length > 0;
-  const hasExpenses = expenses.length > 0;
   const hasTransactionGraphData = transactionGraphData.some((point) => point.count > 0);
 
   const greeting = () => {

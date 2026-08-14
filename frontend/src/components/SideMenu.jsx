@@ -174,6 +174,10 @@ const SideMenu = () => {
             {!collapsed && <span>Support</span>}
           </NavLink>
 
+          <button type="button" className="menu-link text-danger border-0 bg-transparent text-start w-100" onClick={() => { closeMobileMenu(); handleLogout(); }}>
+            <i className="fa-solid fa-right-from-bracket"></i>
+            {!collapsed && <span>Logout</span>}
+          </button>
         </div>
 
         {/* Logo */}

@@ -87,7 +87,7 @@ export default function AdminPanel() {
     return () => {
       mounted = false;
     };
-  }, [navigate]);
+  }, [navigate, showToast]);
 
   const filteredUsers = useMemo(() => {
     const query = userSearch.trim().toLowerCase();

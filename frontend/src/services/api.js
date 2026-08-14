@@ -39,7 +39,7 @@ async function request(endpoint, options = {}) {
          setToken(refreshData.token);
          return request(endpoint, options);
       }
-    } catch(err) {
+    } catch {
       setToken(null);
       throw new Error("Session expired. Please log in again.");
     }
@@ -73,6 +73,7 @@ export const transactionAPI = {
   categorize: (body)     => request("/transactions/categorize", { method: "POST", body: JSON.stringify(body) }),
   delete:  (id)          => request(`/transactions/${id}`, { method: "DELETE" }),
   summary: ()            => request("/transactions/summary"),
+  getAnalytics: ()       => request("/transactions/analytics"),
 };
 
 // ─── User ─────────────────────────────────────────────

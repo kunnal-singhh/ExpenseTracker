@@ -1,20 +1,31 @@
 const Transaction = require("../models/Transaction.model");
 
-const buildSystemPrompt = (transactions = []) => `You are a smart expense assistant. The user has the following transaction data:
+const buildSystemPrompt = (summary, topCategories, recentTransactions) => {
+  const recentStr = recentTransactions
+    .map((t) => `- ${t.date || "N/A"}: ${t.to} (${t.type || (t.amount > 0 ? "income" : "expense")}) \u20b9${Math.abs(t.amount)} [Category: ${t.category || "Other"}]`)
+    .join("\n");
 
-${JSON.stringify(transactions, null, 2)}
+  const categoryStr = topCategories
+    .map((c) => `- ${c._id || "Other"}: \u20b9${c.total}`)
+    .join("\n");
 
-Each transaction has:
-- _id: unique MongoDB id
-- to: the name/description of the expense/income
-- amount: number (negative means money spent, positive means money received)
-- date: in MM/DD/YYYY format
-- time: time of the transaction
-- type: "income" or "expense"
+  return `You are a smart, friendly financial assistant for ExpenseTracker.
+Today's date is ${new Date().toLocaleDateString("en-IN")}.
 
-Today's date is ${new Date().toLocaleDateString("en-US")}.
+Summary of User's Finances:
+- Total Income: \u20b9${summary.totalIncome || 0}
+- Total Expenses: \u20b9${Math.abs(summary.totalExpense || 0)}
+- Net Balance: \u20b9${summary.balance || 0}
+- Total Transactions Logged: ${summary.count || 0}
 
-Answer questions about these transactions clearly and concisely.`;
+Top Spending Categories:
+${categoryStr || "None recorded"}
+
+Recent Transactions:
+${recentStr || "None recorded"}
+
+Answer questions about the user's financial activity clearly, accurately, and concisely based on this summary.`;
+};
 
 const normalizeMessages = (messages = []) =>
   Array.isArray(messages)
@@ -32,7 +43,7 @@ const chatWithGroq = async ({ apiKey, systemPrompt, messages }) => {
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+      model: process.env.GROQ_MODEL || "moonshotai/kimi-k2-instruct",
       max_tokens: 1024,
       messages: [{ role: "system", content: systemPrompt }, ...messages],
     }),
@@ -92,11 +103,37 @@ const chat = async (req, res) => {
 
     const { messages = [] } = req.body;
     const safeMessages = normalizeMessages(messages);
-    const transactions = await Transaction.find({ user: req.user._id })
-      .sort({ createdAt: -1 })
-      .limit(200)
-      .lean();
-    const systemPrompt = buildSystemPrompt(transactions);
+    const userId = req.user._id;
+
+    const [summaryResult, topCategories, recentTransactions] = await Promise.all([
+      Transaction.aggregate([
+        { $match: { user: userId } },
+        {
+          $group: {
+            _id: null,
+            totalIncome: { $sum: { $cond: [{ $gt: ["$amount", 0] }, "$amount", 0] } },
+            totalExpense: { $sum: { $cond: [{ $lt: ["$amount", 0] }, "$amount", 0] } },
+            balance: { $sum: "$amount" },
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+      Transaction.aggregate([
+        { $match: { user: userId, amount: { $lt: 0 } } },
+        { $group: { _id: "$category", total: { $sum: { $abs: "$amount" } } } },
+        { $sort: { total: -1 } },
+        { $limit: 5 },
+      ]),
+      Transaction.find({ user: userId })
+        .sort({ createdAt: -1 })
+        .limit(15)
+        .select("to amount type category date")
+        .lean(),
+    ]);
+
+    const summary = summaryResult[0] || { totalIncome: 0, totalExpense: 0, balance: 0, count: 0 };
+    const systemPrompt = buildSystemPrompt(summary, topCategories, recentTransactions);
+
     const reply = groqKey
       ? await chatWithGroq({ apiKey: groqKey, systemPrompt, messages: safeMessages })
       : await chatWithGemini({ apiKey: geminiKey, systemPrompt, messages: safeMessages });

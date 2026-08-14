@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import useExpense from "../context/expenseContext";
 import { useToast } from "../components/useToast";
 import { ButtonSpinner, EmptyState } from "../components/UiStates";
@@ -19,6 +19,7 @@ const AddExpense = () => {
   const [aiMessage, setAiMessage] = useState("");
   const [aiStatus, setAiStatus] = useState("idle");
   const [loading, setLoading] = useState(false);
+  const categoryRequestRef = useRef({ description: "", promise: null });
 
   const balance = transactions.reduce((a, t) => a + t.amount, 0);
   const amountValue = Number(amount);
@@ -27,37 +28,41 @@ const AddExpense = () => {
   const detectedCategory = useMemo(() => detectExpenseCategory(to), [to]);
   const selectedCategory = manualCategory || aiCategory || detectedCategory;
 
-  useEffect(() => {
-    const description = to.trim();
-    if (!description || manualCategory || detectedCategory !== "Other") {
-      setAiCategory("");
-      setAiMessage("");
-      setAiStatus("idle");
-      return;
+  const requestAiCategory = (description) => {
+    const currentRequest = categoryRequestRef.current;
+    if (currentRequest.description === description && currentRequest.promise) {
+      return currentRequest.promise;
     }
 
-    let cancelled = false;
     setAiStatus("checking");
-    const timer = setTimeout(async () => {
-      try {
-        const data = await transactionAPI.categorize({ description });
-        if (cancelled) return;
-        setAiCategory(data.category && data.category !== "Other" ? data.category : "");
-        setAiMessage(data.error || "");
-        setAiStatus(data.source === "ai" ? "matched" : data.source === "ai_error" ? "error" : "idle");
-      } catch {
-        if (!cancelled) {
+    let promise;
+    promise = transactionAPI.categorize({ description })
+      .then((data) => {
+        const category = data.category && data.category !== "Other" ? data.category : "";
+        if (categoryRequestRef.current.promise === promise) {
+          setAiCategory(category);
+          setAiMessage(data.error || "");
+          setAiStatus(data.source === "ai" ? "matched" : data.source === "ai_error" ? "error" : "idle");
+        }
+        return category;
+      })
+      .catch(() => {
+        if (categoryRequestRef.current.promise === promise) {
           setAiMessage("Could not reach AI categorization.");
           setAiStatus("error");
         }
-      }
-    }, 500);
+        return "";
+      });
 
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [to, manualCategory, detectedCategory]);
+    categoryRequestRef.current = { description, promise };
+    return promise;
+  };
+
+  const handleRecipientBlur = () => {
+    const description = to.trim();
+    if (!description || manualCategory || detectedCategory !== "Other") return;
+    requestAiCategory(description);
+  };
 
   const monthlyExpense = useMemo(() => {
     const now = new Date();
@@ -82,9 +87,15 @@ const AddExpense = () => {
     e.preventDefault();
     if (!canSubmit) return;
 
+    const description = to.trim();
     setLoading(true);
     try {
-      await addTransactions({ to: to.trim(), amount: -amountValue, category: selectedCategory });
+      let category = manualCategory || detectedCategory;
+      if (!manualCategory && detectedCategory === "Other") {
+        category = (await requestAiCategory(description)) || "Other";
+      }
+
+      await addTransactions({ to: description, amount: -amountValue, category });
       showToast("Expense recorded successfully.", "success");
       setTo("");
       setAmount("");
@@ -150,7 +161,9 @@ const AddExpense = () => {
                     setManualCategory("");
                     setAiCategory("");
                     setAiMessage("");
+                    categoryRequestRef.current = { description: "", promise: null };
                   }}
+                  onBlur={handleRecipientBlur}
                 />
                 {to.trim() && (
                   <div className="d-flex align-items-center gap-2 mt-2 flex-wrap">

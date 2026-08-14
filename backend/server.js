@@ -61,6 +61,7 @@ app.use(
     credentials: true,
   })
 );
+
 app.use((req, res, next) => {
   if (req.method === "OPTIONS") {
     return res.sendStatus(204);
@@ -68,9 +69,10 @@ app.use((req, res, next) => {
 
   return next();
 });
-app.use(express.json({ limit: "10gb" }));
-app.use(cookieParser());
 
+app.use(express.json({ limit: "100kb" }));
+app.use(express.urlencoded({ extended: true, limit: "100kb" }));
+app.use(cookieParser());
 
 // ─── Routes ──────────────────────────────────────────
 app.use("/api/auth", authRoutes);
@@ -78,7 +80,7 @@ app.use("/api/transactions", transactionRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/support", supportRoutes);
 app.use("/api/ai", aiRoutes);
-app.use('/api/admin', protect, admin, adminRoutes);
+app.use("/api/admin", protect, admin, adminRoutes);
 
 // ─── Health Check ─────────────────────────────────────
 app.get(["/", "/api", "/api/health"], (req, res) => {

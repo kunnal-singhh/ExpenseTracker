@@ -61,7 +61,7 @@ const expenseCategoryRules = [
   { category: "Transport", keywords: ["uber", "ola", "rapido", "taxi", "cab", "auto", "rickshaw", "metro", "bus", "train", "fuel", "petrol", "diesel", "parking", "toll", "office", "commute"] },
   { category: "Alcohol", keywords: ["alcohol", "beer", "wine", "whiskey", "whisky", "vodka", "rum", "gin", "liquor", "cocktail", "bar"] },
   { category: "Beverage", keywords: ["drink", "drinks", "cold drink", "cold drinks", "soda", "juice", "tea", "chai", "coffee", "shake", "smoothie", "beverage"] },
-  { category: "Food", keywords: ["food", "ate", "eat", "meal", "restaurant", "cafe", "lunch", "dinner", "breakfast", "swiggy", "zomato", "grocery", "groceries", "snack", "blinkit", "zepto", "bigbasket"] },
+  { category: "Food", keywords: ["food", "ate", "eat", "meal", "restaurant", "cafe", "lunch", "dinner", "breakfast", "swiggy", "zomato", "grocery", "groceries", "snack", "chocolate", "chocolates", "choclate", "candy", "sweet", "sweets", "blinkit", "zepto", "bigbasket"] },
   { category: "Rent", keywords: ["rent", "landlord", "flat", "apartment", "pg", "hostel"] },
   { category: "Shopping", keywords: ["shopping", "amazon", "flipkart", "myntra", "clothes", "shoes", "store", "mall"] },
   { category: "Bills", keywords: ["bill", "electricity", "water", "wifi", "internet", "recharge", "phone", "mobile", "gas"] },
@@ -86,9 +86,14 @@ const incomeCategoryRules = [
 const detectCategory = (description = "", rules) => {
   const normalized = description.toLowerCase();
   const match = rules.find(({ keywords }) =>
-    keywords.some((keyword) => normalized.includes(keyword))
+    keywords.some((keyword) => matchesKeyword(normalized, keyword))
   );
   return match?.category || "Other";
+};
+
+const matchesKeyword = (text, keyword) => {
+  const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`\\b${escapedKeyword}\\b`, "i").test(text);
 };
 
 const normalizeCategory = (category = "", allowedCategories = EXPENSE_CATEGORIES) => {
@@ -122,7 +127,9 @@ Rules:
 - Pick exactly one category from the allowed list.
 - Prefer the closest useful category instead of Other.
 - Use Other only when the description is too vague or genuinely does not fit the allowed categories.
-${isIncome ? "- Categorize where the money came from, not what it might be spent on." : `- If the item is a non-alcoholic drink, choose Beverage.
+${isIncome ? `- Categorize where the money came from, not what it might be spent on.
+- Use the closest category for ordinary wording: employer or salary payment → Salary; client or work payment → Freelance; sale or shop earning → Business; money from family or friends → Gift; cashback or returned payment → Refund; bank/FD interest → Interest; reward → Bonus; saved cash or deposit → Savings.
+- A meaningful source description must receive its closest category; do not choose Other merely because its wording is informal or incomplete.` : `- If the item is a non-alcoholic drink, choose Beverage.
 - If the item is an alcoholic drink, choose Alcohol.
 - If the item is edible food, choose Food even if the food name is regional, brand-specific, or unfamiliar.`}
 `;
@@ -246,6 +253,83 @@ const getTransactions = async (req, res) => {
   }
 };
 
+// --- ASYNC BACKGROUND BUDGET ALERT LOGIC ---
+const processBudgetAlertAsync = (userId) => {
+  setImmediate(async () => {
+    try {
+      const userDoc = await mongoose.model("User").findById(userId);
+      if (!userDoc || !userDoc.budgetAmount || userDoc.budgetAmount <= 0) return;
+
+      const now = new Date();
+      let startDate = new Date(now);
+      let endDate = new Date(now);
+
+      if (userDoc.budgetPeriod === "daily") {
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+      } else if (userDoc.budgetPeriod === "weekly") {
+        const day = startDate.getDay();
+        const diff = startDate.getDate() - day + (day === 0 ? -6 : 1);
+        startDate.setDate(diff);
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + 6);
+        endDate.setHours(23, 59, 59, 999);
+      } else if (userDoc.budgetPeriod === "yearly") {
+        startDate.setMonth(0, 1);
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setMonth(11, 31);
+        endDate.setHours(23, 59, 59, 999);
+      } else {
+        startDate.setDate(1);
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+        endDate.setHours(23, 59, 59, 999);
+      }
+
+      let alreadySentThisPeriod = false;
+      if (userDoc.lastBudgetAlertDate) {
+        const lastAlert = new Date(userDoc.lastBudgetAlertDate);
+        if (lastAlert >= startDate && lastAlert <= endDate) {
+          alreadySentThisPeriod = true;
+        }
+      }
+
+      if (!alreadySentThisPeriod) {
+        const expenseResult = await Transaction.aggregate([
+          {
+            $match: {
+              user: new mongoose.Types.ObjectId(userId),
+              amount: { $lt: 0 },
+              createdAt: { $gte: startDate, $lte: endDate },
+            },
+          },
+          { $group: { _id: null, total: { $sum: "$amount" } } },
+        ]);
+
+        const totalExpensesThisPeriod = Math.abs(expenseResult[0]?.total || 0);
+
+        if (totalExpensesThisPeriod > userDoc.budgetAmount) {
+          const { sendBudgetAlertEmail } = require("../utils/emailService");
+          const sent = await sendBudgetAlertEmail(
+            userDoc.email,
+            userDoc.name,
+            userDoc.budgetAmount,
+            totalExpensesThisPeriod,
+            userDoc.budgetPeriod
+          );
+          if (sent) {
+            userDoc.lastBudgetAlertDate = new Date();
+            await userDoc.save();
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Background budget alert processing error:", err);
+    }
+  });
+};
+
 // ─── @POST /api/transactions ───────────────────────────
 const createTransaction = async (req, res) => {
   try {
@@ -255,113 +339,34 @@ const createTransaction = async (req, res) => {
       return res.status(400).json({ success: false, message: "to and a non-zero amount are required" });
     }
 
-    /* 
-    // Removed hard balance check so users can track expenses normally 
-    // and rely on the soft budget alert instead.
-    if (Number(amount) < 0) {
-      const result = await Transaction.aggregate([
-        { $match: { user: new mongoose.Types.ObjectId(req.user._id) } },
-        { $group: { _id: null, balance: { $sum: "$amount" } } },
-      ]);
-      const balance = result[0]?.balance || 0;
+    const type = Number(amount) > 0 ? "income" : "expense";
+    const allowedCategories = type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+    const rules = type === "income" ? incomeCategoryRules : expenseCategoryRules;
 
-      if (balance <= 0) {
-        return res.status(400).json({ success: false, message: "Balance is zero. Cannot add expense." });
-      }
-      if (Math.abs(Number(amount)) > balance) {
-        return res.status(400).json({ success: false, message: "Expense exceeds available balance." });
-      }
+    let finalCategory = "Other";
+    if (category) {
+      finalCategory = normalizeCategory(category, allowedCategories);
     }
-    */
+    if (finalCategory === "Other") {
+      finalCategory = detectCategory(to, rules);
+    }
 
-    const resolvedCategory = Number(amount) < 0
-      ? await resolveTransactionCategory(to, category, "expense")
-      : await resolveTransactionCategory(to, category, "income");
     const now = new Date();
     const transaction = await Transaction.create({
       user: req.user._id,
       to,
       amount: Number(amount),
-      type: Number(amount) > 0 ? "income" : "expense",
-      category: resolvedCategory.category,
+      type,
+      category: finalCategory,
       date: now.toLocaleDateString(),
       time: now.toLocaleTimeString(),
     });
 
-    // --- BUDGET ALERT LOGIC ---
-    if (Number(amount) < 0) {
-      const userDoc = await mongoose.model("User").findById(req.user._id);
-      if (userDoc && userDoc.budgetAmount > 0) {
-        const now = new Date();
-        let startDate = new Date(now);
-        let endDate = new Date(now);
-
-        if (userDoc.budgetPeriod === "daily") {
-          startDate.setHours(0, 0, 0, 0);
-          endDate.setHours(23, 59, 59, 999);
-        } else if (userDoc.budgetPeriod === "weekly") {
-          const day = startDate.getDay();
-          const diff = startDate.getDate() - day + (day === 0 ? -6 : 1); // Monday as first day
-          startDate.setDate(diff);
-          startDate.setHours(0, 0, 0, 0);
-          endDate = new Date(startDate);
-          endDate.setDate(endDate.getDate() + 6);
-          endDate.setHours(23, 59, 59, 999);
-        } else if (userDoc.budgetPeriod === "yearly") {
-          startDate.setMonth(0, 1);
-          startDate.setHours(0, 0, 0, 0);
-          endDate.setMonth(11, 31);
-          endDate.setHours(23, 59, 59, 999);
-        } else { // monthly (default)
-          startDate.setDate(1);
-          startDate.setHours(0, 0, 0, 0);
-          endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
-          endDate.setHours(23, 59, 59, 999);
-        }
-
-        // Check if an alert was already sent in this specific period
-        let alreadySentThisPeriod = false;
-        if (userDoc.lastBudgetAlertDate) {
-          const lastAlert = new Date(userDoc.lastBudgetAlertDate);
-          if (lastAlert >= startDate && lastAlert <= endDate) {
-            alreadySentThisPeriod = true;
-          }
-        }
-
-        if (!alreadySentThisPeriod) {
-          const expenseResult = await Transaction.aggregate([
-            { 
-              $match: { 
-                user: new mongoose.Types.ObjectId(req.user._id),
-                amount: { $lt: 0 },
-                createdAt: { $gte: startDate, $lte: endDate }
-              } 
-            },
-            { $group: { _id: null, total: { $sum: "$amount" } } }
-          ]);
-          
-          const totalExpensesThisPeriod = Math.abs(expenseResult[0]?.total || 0);
-
-          if (totalExpensesThisPeriod > userDoc.budgetAmount) {
-            const { sendBudgetAlertEmail } = require("../utils/emailService");
-            const sent = await sendBudgetAlertEmail(
-              userDoc.email, 
-              userDoc.name, 
-              userDoc.budgetAmount, 
-              totalExpensesThisPeriod,
-              userDoc.budgetPeriod
-            );
-            if (sent) {
-              userDoc.lastBudgetAlertDate = new Date();
-              await userDoc.save();
-            }
-          }
-        }
-      }
-    }
-    // --------------------------
-
     res.status(201).json({ success: true, transaction });
+
+    if (Number(amount) < 0) {
+      processBudgetAlertAsync(req.user._id);
+    }
   } catch (err) {
     console.error("createTransaction error:", err);
     res.status(500).json({ success: false, message: err.message });
@@ -411,4 +416,69 @@ const getSummary = async (req, res) => {
   }
 };
 
-module.exports = { getTransactions, createTransaction, deleteTransaction, getSummary, categorizeTransaction };
+// ─── @GET /api/transactions/analytics ────────────────
+const getAnalytics = async (req, res) => {
+  try {
+    const userId = new mongoose.Types.ObjectId(req.user._id);
+
+    const [summaryResult, categoryTotalsResult, monthResult] = await Promise.all([
+      Transaction.aggregate([
+        { $match: { user: userId } },
+        {
+          $group: {
+            _id: null,
+            totalIncome: { $sum: { $cond: [{ $gt: ["$amount", 0] }, "$amount", 0] } },
+            totalExpense: { $sum: { $cond: [{ $lt: ["$amount", 0] }, "$amount", 0] } },
+            balance: { $sum: "$amount" },
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+      Transaction.aggregate([
+        { $match: { user: userId, amount: { $lt: 0 } } },
+        { $group: { _id: "$category", total: { $sum: { $abs: "$amount" } } } },
+        { $sort: { total: -1 } },
+      ]),
+      (() => {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        return Transaction.aggregate([
+          {
+            $match: {
+              user: userId,
+              createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              income: { $sum: { $cond: [{ $gt: ["$amount", 0] }, "$amount", 0] } },
+              expense: { $sum: { $cond: [{ $lt: ["$amount", 0] }, { $abs: "$amount" }, 0] } },
+            },
+          },
+        ]);
+      })(),
+    ]);
+
+    const summary = summaryResult[0] || { totalIncome: 0, totalExpense: 0, balance: 0, count: 0 };
+    delete summary._id;
+
+    const currentMonthStats = {
+      income: monthResult[0]?.income || 0,
+      expense: monthResult[0]?.expense || 0,
+      net: (monthResult[0]?.income || 0) - (monthResult[0]?.expense || 0),
+    };
+
+    res.json({
+      success: true,
+      summary,
+      categoryTotals: categoryTotalsResult,
+      currentMonthStats,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { getTransactions, createTransaction, deleteTransaction, getSummary, getAnalytics, categorizeTransaction };

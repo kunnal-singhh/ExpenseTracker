@@ -5,6 +5,7 @@ const {
   createTransaction,
   deleteTransaction,
   getSummary,
+  getAnalytics,
   categorizeTransaction,
 } = require("../controllers/transactionController");
 const { protect } = require("../middleware/authMiddleware");
@@ -19,6 +20,7 @@ router.post("/categorize", categorizeTransaction);
 
 // GET  /api/transactions/summary  → balance, income, expense totals
 router.get("/summary", getSummary);
+router.get("/analytics", getAnalytics);
 
 // DELETE /api/transactions/:id
 router.delete("/:id", deleteTransaction);

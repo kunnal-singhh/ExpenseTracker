@@ -1451,6 +1451,7 @@ h1, h2, h3, h4, h5, h6,
   
   .sidebar:not(.collapsed) {
     transform: translateX(0) !important;
+  }
   .content-wrapper {
     margin-left: 56px;
     padding-right: 0 !important;
